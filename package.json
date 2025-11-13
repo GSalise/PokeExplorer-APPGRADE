@@ -10,10 +10,20 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native/new-app-screen": "^0.81.4",
+    "@react-navigation/drawer": "^7.7.2",
+    "@react-navigation/native": "^7.1.19",
+    "@reactvision/react-viro": "^2.44.0",
+    "@tanstack/react-query": "^5.90.8",
+    "axios": "^1.13.2",
     "react": "19.1.1",
-    "react-native": "0.82.1",
-    "@react-native/new-app-screen": "0.82.1",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native": "^0.81.4",
+    "react-native-gesture-handler": "^2.29.1",
+    "react-native-reanimated": "^4.1.5",
+    "react-native-safe-area-context": "^5.6.2",
+    "react-native-screens": "^4.18.0",
+    "react-native-worklets": "^0.6.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -22,10 +32,10 @@
     "@react-native-community/cli": "20.0.0",
     "@react-native-community/cli-platform-android": "20.0.0",
     "@react-native-community/cli-platform-ios": "20.0.0",
-    "@react-native/babel-preset": "0.82.1",
-    "@react-native/eslint-config": "0.82.1",
-    "@react-native/metro-config": "0.82.1",
-    "@react-native/typescript-config": "0.82.1",
+    "@react-native/babel-preset": "^0.81.4",
+    "@react-native/eslint-config": "^0.81.4",
+    "@react-native/metro-config": "^0.81.4",
+    "@react-native/typescript-config": "^0.81.4",
     "@types/jest": "^29.5.13",
     "@types/react": "^19.1.1",
     "@types/react-test-renderer": "^19.1.0",
