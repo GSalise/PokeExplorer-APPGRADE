@@ -1,34 +1,70 @@
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { signOut  } from 'firebase/auth';
 import Camera from './screens/camera';
 import PokemonAR from './screens/pokemon-AR';
 import Home from './screens/home';
+import Login from './screens/Login';
+import SignUp from './screens/SignUp';
+import LogoutScreen from './screens/logout';
+import { useAuthState } from './hooks/useStateAuth';
+
+export type RootStackParamList = {
+  Screens: undefined;
+  Home: undefined;
+  PokemonAR: undefined;
+  Login: undefined;
+  SignUp: undefined;
+  Camera: undefined;
+  Logout: undefined;
+};
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const queryClient = new QueryClient();
 
 function DrawerScreens() {
-  return (    
+  return (
     <Drawer.Navigator screenOptions={{ headerShown: false }}>
       <Drawer.Screen name="Home" component={Home} />
       <Drawer.Screen name="PokemonAR" component={PokemonAR} />
+      <Drawer.Screen name="Camera" component={Camera} />
+      <Drawer.Screen name="Logout" component={LogoutScreen} />
     </Drawer.Navigator>
   );
 }
 
-function App() {
+function AppNavigation() {
+  const { user, loading } = useAuthState();
+
+  if (loading) {
+    return null; // Or splash/loading screen
+  }
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {user ? (
+        // Authenticated → show Drawer
+        <Stack.Screen name="Screens" component={DrawerScreens} />
+      ) : (
+        // Not authenticated → show Login + Signup
+        <>
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="SignUp" component={SignUp} />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+}
+
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false}}>
-          <Stack.Screen name="Screens" component={DrawerScreens} />
-        </Stack.Navigator>
+        <AppNavigation />
       </NavigationContainer>
     </QueryClientProvider>
   );
 }
-
-export default App;
