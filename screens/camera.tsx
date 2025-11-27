@@ -13,6 +13,9 @@ import {
   useCameraPermission,
 } from 'react-native-vision-camera';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
+import { useNavigation } from '@react-navigation/native';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { useIsFocused } from '@react-navigation/native';
 
 const PermissionPage = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -90,6 +93,8 @@ export default function Camera() {
   const cameraRef = useRef<VisionCamera>(null);
   const [captureSuccess, setCaptureSuccess] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const navigation = useNavigation<DrawerNavigationProp<any>>();
+  const isFocused = useIsFocused();
 
   const takePhoto = async () => {
     try {
@@ -133,39 +138,55 @@ export default function Camera() {
 
   return (
     <View style={{ flex: 1 }}>
-      <VisionCamera
-        ref={cameraRef}
-        style={StyleSheet.absoluteFill}
-        device={device}
-        isActive={true}
-        photo={true}
-        video={true}
-        audio={true}
-      />
-      <View style={styles.controls}>
+      <View style={styles.header}>
         <TouchableOpacity
-          style={[
-            styles.captureButton,
-            isRecording && { backgroundColor: 'red' },
-          ]}
-          onPress={isRecording ? stopVideoRecording : takePhoto}
-          onLongPress={startVideoRecording}
+          style={styles.hamburger}
+          onPress={() => navigation.openDrawer()}
+          accessibilityLabel="Open drawer menu"
         >
-          <Text style={styles.captureText}>{isRecording ? '■' : '●'}</Text>
+          <View style={styles.bar} />
+          <View style={styles.bar} />
+          <View style={styles.bar} />
         </TouchableOpacity>
-        <Text style={{ marginTop: 10, color: '#fff' }}>
-          {isRecording
-            ? 'Recording...'
-            : 'Tap to capture, long press for video'}
-        </Text>
+        <Text style={styles.title}>Pokédex</Text>
+        {/* To make things even */}
+        <TouchableOpacity style={styles.hamburger}></TouchableOpacity>
       </View>
-      {captureSuccess && (
-        <View style={styles.successContainer}>
-          <Text style={styles.successText}>
-            {isRecording ? 'Video Saved' : 'Capture Success'}
+      <View style={{ flex: 1 }}>
+        <VisionCamera
+          ref={cameraRef}
+          style={{ flex: 1 }}
+          device={device}
+          isActive={isFocused} // <-- Only active when screen is focused
+          photo={true}
+          video={true}
+          audio={true}
+        />
+        <View style={styles.controls}>
+          <TouchableOpacity
+            style={[
+              styles.captureButton,
+              isRecording && { backgroundColor: 'red' },
+            ]}
+            onPress={isRecording ? stopVideoRecording : takePhoto}
+            onLongPress={startVideoRecording}
+          >
+            <Text style={styles.captureText}>{isRecording ? '■' : '●'}</Text>
+          </TouchableOpacity>
+          <Text style={{ marginTop: 10, color: '#fff' }}>
+            {isRecording
+              ? 'Recording...'
+              : 'Tap to capture, long press for video'}
           </Text>
         </View>
-      )}
+        {captureSuccess && (
+          <View style={styles.successContainer}>
+            <Text style={styles.successText}>
+              {isRecording ? 'Video Saved' : 'Capture Success'}
+            </Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -203,5 +224,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    alignSelf: 'center',
+  },
+  header: {
+    marginTop: 64,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexDirection: 'row',
+    width: '100%',
+  },
+  hamburger: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bar: {
+    width: 24,
+    height: 3,
+    backgroundColor: 'black',
+    marginVertical: 2,
+    borderRadius: 2,
   },
 });

@@ -18,6 +18,47 @@ interface PokemonSpeciesResponse {
     version: { name: string };
   }>;
 }
+// const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
+//   const cacheKey = `${CACHE_PREFIX}_${limit}_${offset}`;
+//   const cached = await AsyncStorage.getItem(cacheKey);
+
+//   if (cached) {
+//     const { timestamp, data } = JSON.parse(cached);
+//     if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+//       return data;
+//     }
+//   }
+
+//   try {
+//     console.log('Fetching from PokeAPI...');
+
+//     // Use fetch instead of axios
+//     const response = await fetch(
+//       `https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`,
+//     );
+
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
+
+//     const listData = await response.json();
+//     console.log('API Response received:', listData);
+
+//     // Return simplified data for now
+//     return {
+//       count: listData.count,
+//       next: listData.next,
+//       previous: listData.previous,
+//       results: listData.results.map((p: any) => ({
+//         ...p,
+//         flavor_text: 'A Pokémon species',
+//       })),
+//     };
+//   } catch (err) {
+//     console.error('Fetch error details:', err);
+//     throw err;
+//   }
+// };
 
 const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
   const cacheKey = `${CACHE_PREFIX}_${limit}_${offset}`;
