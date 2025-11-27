@@ -8,6 +8,8 @@ import {
 import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import PokemonARScene from "./pokemon-AR-scene";
+
+
 export default function PokemonAR() {
 return (
     <ViroARSceneNavigator

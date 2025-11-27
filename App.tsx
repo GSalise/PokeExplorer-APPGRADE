@@ -10,7 +10,7 @@ const queryClient = new QueryClient();
 
 function DrawerScreens() {
   return (
-    <Drawer.Navigator screenOptions={{ headerShown: false }}>
+    <Drawer.Navigator screenOptions={{ headerShown: true }}>
       <Drawer.Screen name="Camera" component={Camera} />
       <Drawer.Screen name="PokemonAR" component={PokemonAR} />
     </Drawer.Navigator>
@@ -21,7 +21,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={{ headerShown: false}}>
           <Stack.Screen name="Screens" component={DrawerScreens} />
         </Stack.Navigator>
       </NavigationContainer>

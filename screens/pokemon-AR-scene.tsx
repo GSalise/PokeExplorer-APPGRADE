@@ -1,31 +1,45 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from 'react';
 import {
   ViroARScene,
+  ViroARSceneNavigator,
   ViroText,
+  ViroTrackingReason,
   ViroTrackingStateConstants,
-  ViroARTrackingTargets,
-  ViroARImageMarker,
-  Viro3DObject,
-  ViroAmbientLight,
-  ViroNode,
-  ViroOmniLight,
 } from "@reactvision/react-viro";
-import { StyleSheet } from "react-native";
+import { StyleSheet } from 'react-native';
 
-export default function PokemonARScene() {
+const PokemonARScene = () => {
+  const [text, setText] = useState('Initializing AR...');
+
+  function onInitialized(state: any, reason: ViroTrackingReason) {
+    console.log('onInitialized', state, reason);
+    if (state === ViroTrackingStateConstants.TRACKING_NORMAL) {
+      setText('Hello World!');
+    } else if (state === ViroTrackingStateConstants.TRACKING_UNAVAILABLE) {
+      // Handle loss of tracking
+    }
+  }
   return (
-    <ViroARScene >
-      <ViroText text="Hello World" position={[0, 0, -1]} style={styles.statusText}>
-      </ViroText>
+    <ViroARScene onTrackingUpdated={onInitialized}>
+      <ViroText
+        text={text}
+        scale={[0.5, 0.5, 0.5]}
+        position={[0, 0, -1]}
+        style={styles.helloWorldTextStyle}
+      />
     </ViroARScene>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  statusText: {
+var styles = StyleSheet.create({
+  f1: { flex: 1 },
+  helloWorldTextStyle: {
     fontFamily: "Arial",
-    fontSize: 5,
+    fontSize: 30,
     color: "#ffffff",
+    textAlignVertical: "center",
     textAlign: "center",
   },
 });
+
+export default PokemonARScene;
