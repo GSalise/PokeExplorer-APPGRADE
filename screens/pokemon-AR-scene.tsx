@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import {
+  ViroAnimatedImage,
   ViroARScene,
   ViroARSceneNavigator,
   ViroText,
   ViroTrackingReason,
   ViroTrackingStateConstants,
+  ViroAmbientLight,
 } from "@reactvision/react-viro";
 import { StyleSheet } from 'react-native';
 
@@ -21,11 +23,12 @@ const PokemonARScene = () => {
   }
   return (
     <ViroARScene onTrackingUpdated={onInitialized}>
-      <ViroText
-        text={text}
-        scale={[0.5, 0.5, 0.5]}
-        position={[0, 0, -1]}
-        style={styles.helloWorldTextStyle}
+      <ViroAmbientLight color="#ffffff" intensity={1000} />
+      <ViroAnimatedImage
+        placeholderSource={{uri: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/1.gif"}}
+        source={{uri: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/1.gif"}}
+        position={[0, -0.5, -1]}
+        scale={[0.3, 0.3, 0.3]}
       />
     </ViroARScene>
   );
