@@ -1,40 +1,87 @@
-import React, { useRef, useState } from "react";
-import { View, Pressable, Text, StyleSheet } from "react-native";
-import { ViroARSceneNavigator } from "@reactvision/react-viro";
-import { captureRef } from "react-native-view-shot";
-import { CameraRoll } from "@react-native-camera-roll/camera-roll";
-import PokemonARScene from "./pokemon-AR-scene";
-import uuid from "react-native-uuid";
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  View,
+  Pressable,
+  Text,
+  StyleSheet,
+  PermissionsAndroid,
+  Platform,
+} from 'react-native';
+import { ViroARSceneNavigator } from '@reactvision/react-viro';
+import { captureRef } from 'react-native-view-shot';
+import uuid from 'react-native-uuid';
+import { CameraRoll } from '@react-native-camera-roll/camera-roll';
+import PokemonARScene from './pokemon-AR-scene';
 
-export default function PokemonAR() {
-  const viroViewRef = useRef<View>(null);
+type props = {
+  route: { params?: { pokemonid?: string } };
+};
+export default function PokemonAR({ route }: props) {
+  const viroViewRef = useRef<ViroARSceneNavigator | null>(null);
   const [flashMessage, setFlashMessage] = useState(false);
 
-  const capturePokemon = async () => {
-  try {
-    const uri = await captureRef(viroViewRef, {
-      format: "jpg",
-      quality: 1,
-      result: "tmpfile",
-      handleGLSurfaceViewOnAndroid: true,
-    });
-
-    console.log("Captured:", uri);
-
-  } catch (err) {
-    console.error("Error:", err);
+  const pokemonid = route.params?.pokemonid ?? '25';
+  const SceneWithProps = useMemo(
+    () =>
+      function Scene() {
+        return <PokemonARScene pokemonid={pokemonid} />;
+      },
+    [pokemonid],
+  );
+  async function ensurePhotoPermission() {
+    if (Platform.OS !== 'android') return true;
+    const perm =
+      Platform.Version >= 33
+        ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+        : PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
+    const res = await PermissionsAndroid.request(perm);
+    return res === PermissionsAndroid.RESULTS.GRANTED;
   }
-};
+
+  const capturePokemon = async () => {
+    try {
+      if (!viroViewRef.current) {
+        console.warn('AR scene not ready yet');
+        return;
+      }
+
+      const randomName = String(uuid.v4());
+      const localUri = await captureRef(viroViewRef.current, {
+        format: 'jpg',
+        quality: 1,
+        fileName: randomName,
+        handleGLSurfaceViewOnAndroid: true,
+      });
+      if (!localUri) {
+        console.warn('AR scene not ready yet');
+        return;
+      }
+
+      console.log('Captured:', localUri);
+
+      const ok = await ensurePhotoPermission();
+      if (!ok) {
+        console.warn('Gallery permission denied');
+        return;
+      }
+
+      await CameraRoll.save(localUri, { type: 'photo', album: 'PokeExplorer' });
+      setFlashMessage(true);
+      setTimeout(() => setFlashMessage(false), 1500);
+    } catch (err) {
+      console.error('Error:', err);
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      {/* AR view wrapped for captureRef */}
-      <View ref={viroViewRef} style={StyleSheet.absoluteFill}>
-        <ViroARSceneNavigator
-          initialScene={{ scene: PokemonARScene }}
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
+      {/* Wrap AR view in ViewShot to get a valid native target */}
+      <ViroARSceneNavigator
+        key={pokemonid} 
+        ref={viroViewRef}
+        initialScene={{ scene: SceneWithProps }}
+        style={StyleSheet.absoluteFill}
+      />
 
       {/* Crosshair */}
       <View style={styles.crosshair} />
@@ -47,7 +94,7 @@ export default function PokemonAR() {
       {/* Flash message */}
       {flashMessage && (
         <View style={styles.flashBanner}>
-          <Text style={{ color: "white" }}>Screenshot saved!</Text>
+          <Text style={{ color: 'white' }}>Screenshot saved!</Text>
         </View>
       )}
     </View>
@@ -56,40 +103,40 @@ export default function PokemonAR() {
 
 const styles = StyleSheet.create({
   crosshair: {
-    position: "absolute",
+    position: 'absolute',
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: "red",
+    borderColor: 'red',
     borderRadius: 20,
-    top: "50%",
-    left: "50%",
+    top: '50%',
+    left: '50%',
     marginLeft: -20,
     marginTop: -20,
     zIndex: 10,
   },
   captureButton: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 40,
-    alignSelf: "center",
-    backgroundColor: "#ff4444",
+    alignSelf: 'center',
+    backgroundColor: '#ff4444',
     paddingVertical: 15,
     paddingHorizontal: 40,
     borderRadius: 30,
     zIndex: 20,
   },
   captureText: {
-    color: "white",
-    fontWeight: "bold",
+    color: 'white',
+    fontWeight: 'bold',
     fontSize: 18,
   },
   flashBanner: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 0,
-    width: "100%",
+    width: '100%',
     height: 40,
-    backgroundColor: "green",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'green',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -9,15 +9,20 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { usePokeDexApi } from '../hooks/usePokeApi';
-import LinearGradient from 'react-native-linear-gradient';
+// import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 
 function getPokemonImageUrl(url: string) {
-  // Extract the Pokémon ID from the URL
   const idMatch = url.match(/\/pokemon\/(\d+)\//);
   const id = idMatch ? idMatch[1] : '';
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+}
+
+// Helper to extract the numeric id for navigation
+function getPokemonId(url: string) {
+  const m = url.match(/\/pokemon\/(\d+)\//);
+  return m ? m[1] : '';
 }
 
 function Home() {
@@ -32,25 +37,24 @@ function Home() {
 
   if (isLoading) {
     return (
-      <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+      // <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
         <View
           style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
           <ActivityIndicator size={64} color="#ff0000" />
         </View>
-      </LinearGradient>
     );
   }
 
   if (error) {
     return (
-      <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
-        <View
+      // <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+         <View
           style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
           <Text>Error loading Pokédex.</Text>
         </View>
-      </LinearGradient>
+      // </LinearGradient>
     );
   }
 
@@ -62,7 +66,7 @@ function Home() {
   };
 
   return (
-    <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+    // <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
       <View style={styles.innerContainer}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -81,18 +85,27 @@ function Home() {
         <FlatList
           data={data?.results}
           keyExtractor={item => item.name}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Image
-                source={{ uri: getPokemonImageUrl(item.url) }}
-                style={styles.image}
-              />
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={[styles.flavor_text, { marginTop: 10 }]}>
-                {item.flavor_text}
-              </Text>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            const id = getPokemonId(item.url);
+            return (
+              <TouchableOpacity
+                style={styles.card}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('PokemonAR', { pokemonid: id })}
+                accessibilityRole="button"
+                accessibilityLabel={`Open AR for ${item.name}`}
+              >
+                <Image
+                  source={{ uri: getPokemonImageUrl(item.url) }}
+                  style={styles.image}
+                />
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={[styles.flavor_text, { marginTop: 10 }]}>
+                  {item.flavor_text}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
           style={{ width: '100%' }}
           contentContainerStyle={{}}
           refreshing={isRefetching}
@@ -100,7 +113,7 @@ function Home() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-    </LinearGradient>
+    // </LinearGradient>
   );
 }
 
