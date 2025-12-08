@@ -19,15 +19,23 @@ type props = {
 export default function PokemonAR({ route }: props) {
   const viroViewRef = useRef<ViroARSceneNavigator | null>(null);
   const [flashMessage, setFlashMessage] = useState(false);
+  const [arReady, setArReady] = useState(false);
+  const [capturing, setCapturing] = useState(false);
 
   const pokemonid = route.params?.pokemonid ?? '25';
   const SceneWithProps = useMemo(
     () =>
       function Scene() {
-        return <PokemonARScene pokemonid={pokemonid} />;
+        return (
+          <PokemonARScene
+            pokemonid={pokemonid}
+            onTrackingReady={() => setArReady(true)}
+          />
+        );
       },
     [pokemonid],
   );
+
   async function ensurePhotoPermission() {
     if (Platform.OS !== 'android') return true;
     const perm =
@@ -38,12 +46,26 @@ export default function PokemonAR({ route }: props) {
     return res === PermissionsAndroid.RESULTS.GRANTED;
   }
 
+  const nextFrame = () =>
+    new Promise<void>((resolve) =>
+      requestAnimationFrame(() => setTimeout(resolve, 0)),
+    );
+
   const capturePokemon = async () => {
+    if (!arReady) {
+      console.warn('AR tracking not ready yet');
+      return;
+    }
+    if (capturing) return;
+    setCapturing(true);
     try {
       if (!viroViewRef.current) {
         console.warn('AR scene not ready yet');
         return;
       }
+
+      // Let layout settle to avoid "No view found with reactTag"
+      await nextFrame();
 
       const randomName = String(uuid.v4());
       const localUri = await captureRef(viroViewRef.current, {
@@ -70,28 +92,35 @@ export default function PokemonAR({ route }: props) {
       setTimeout(() => setFlashMessage(false), 1500);
     } catch (err) {
       console.error('Error:', err);
+    } finally {
+      setCapturing(false);
     }
   };
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Wrap AR view in ViewShot to get a valid native target */}
       <ViroARSceneNavigator
-        key={pokemonid} 
+        key={pokemonid}
         ref={viroViewRef}
         initialScene={{ scene: SceneWithProps }}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Crosshair */}
       <View style={styles.crosshair} />
 
-      {/* Capture Button */}
-      <Pressable onPress={capturePokemon} style={styles.captureButton}>
-        <Text style={styles.captureText}>CAPTURE</Text>
+      <Pressable
+        onPress={capturePokemon}
+        style={[
+          styles.captureButton,
+          (!arReady || capturing) && { opacity: 0.5 },
+        ]}
+        disabled={!arReady || capturing}
+      >
+        <Text style={styles.captureText}>
+          {capturing ? 'CAPTURING…' : 'CAPTURE'}
+        </Text>
       </Pressable>
 
-      {/* Flash message */}
       {flashMessage && (
         <View style={styles.flashBanner}>
           <Text style={{ color: 'white' }}>Screenshot saved!</Text>
