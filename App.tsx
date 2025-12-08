@@ -23,7 +23,7 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
-const queryClient = new QueryClient();
+
 
 function DrawerScreens() {
   return (
@@ -60,6 +60,7 @@ function AppNavigation() {
 }
 
 export default function App() {
+  const queryClient = new QueryClient();
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationContainer>
