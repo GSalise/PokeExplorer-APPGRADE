@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { usePokeDexApi } from '../hooks/usePokeApi';
-// import { LinearGradient } from 'expo-linear-gradient';
+import  LinearGradient  from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 
@@ -37,24 +37,25 @@ function Home() {
 
   if (isLoading) {
     return (
-      // <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+       <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
         <View
           style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
           <ActivityIndicator size={64} color="#ff0000" />
         </View>
+        </LinearGradient>
     );
   }
 
   if (error) {
     return (
-      // <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+       <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
          <View
           style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
           <Text>Error loading Pokédex.</Text>
         </View>
-      // </LinearGradient>
+       </LinearGradient>
     );
   }
 
@@ -66,7 +67,7 @@ function Home() {
   };
 
   return (
-    // <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+     <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
       <View style={styles.innerContainer}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -113,7 +114,7 @@ function Home() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-    // </LinearGradient>
+     </LinearGradient>
   );
 }
 
