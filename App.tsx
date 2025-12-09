@@ -2,13 +2,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { signOut  } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import Camera from './screens/camera';
 import PokemonAR from './screens/pokemon-AR';
 import Home from './screens/home';
 import Login from './screens/Login';
 import SignUp from './screens/SignUp';
 import LogoutScreen from './screens/logout';
+import Map from './screens/map';
 import { useAuthState } from './hooks/useStateAuth';
 
 export type RootStackParamList = {
@@ -19,16 +20,17 @@ export type RootStackParamList = {
   SignUp: undefined;
   Camera: undefined;
   Logout: undefined;
+  Map: undefined;
 };
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
-
 function DrawerScreens() {
   return (
     <Drawer.Navigator screenOptions={{ headerShown: false }}>
       <Drawer.Screen name="Home" component={Home} />
+      <Drawer.Screen name="Map" component={Map} />
       <Drawer.Screen name="PokemonAR" component={PokemonAR} />
       <Drawer.Screen name="Camera" component={Camera} />
       <Drawer.Screen name="Logout" component={LogoutScreen} />
