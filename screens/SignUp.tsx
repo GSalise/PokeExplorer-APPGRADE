@@ -1,121 +1,169 @@
-import React, { useState } from "react";
-import { View, TextInput, Button, Text, StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { useSignUp } from "../hooks/useSignUp";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../App";
+import React, { useState } from 'react';
+import {
+  View,
+  TextInput,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import { useSignUp } from '../hooks/useSignUp';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../App';
 
-type LoginNavProp = NativeStackNavigationProp<RootStackParamList, "Login">;
+type LoginNavProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 export default function SignUpScreen() {
   const { signUp, loading, error } = useSignUp();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [retypePassword, setRetypePassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [retypePassword, setRetypePassword] = useState('');
 
   const navigation = useNavigation<LoginNavProp>();
 
   const handleSignUp = async () => {
     if (password !== retypePassword) {
-      console.log("Passwords do not match");
       return;
     }
-
     const result = await signUp(email, password);
-
     if (result) {
-      console.log("Account created!");
-      navigation.navigate("Login");
+      navigation.navigate('Login');
     }
   };
 
-  return (  
+  return (
     <View style={styles.container}>
-      <Text style={styles.title}>PokeDex</Text>
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor="#ccc"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Retype Password"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        value={retypePassword}
-        onChangeText={setRetypePassword}
-        style={styles.input}
-      />
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-     <View style={{ width: "100%", marginTop: 12 }}>
-  <View style={styles.buttonWrapper}>
-    <Button
-      title={loading ? "Creating..." : "Sign Up"}
-      onPress={handleSignUp}
-      color="#1e90ff"
-    />
-  </View>
-
-        <View style={styles.buttonWrapper}>
-          <Button
-            title="Back to Login"
-            onPress={() => navigation.navigate("Login")}
-            color="#888"
-          />
-        </View>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['#DC0A2D', '#FF6B6B']}
+        style={styles.headerGradient}
+      >
+        <Text style={styles.title}>Sign Up</Text>
+      </LinearGradient>
+      <View style={styles.formCard}>
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor="#aaa"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+          autoCapitalize="none"
+        />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+        />
+        <TextInput
+          placeholder="Retype Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={retypePassword}
+          onChangeText={setRetypePassword}
+          style={styles.input}
+        />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleSignUp}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? 'Creating...' : 'Sign Up'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => navigation.navigate('Login')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.secondaryButtonText}>Back to Login</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#fff",
-    textAlign: "center",
-  },
   container: {
     flex: 1,
-    backgroundColor: "#121212",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    alignItems: 'center',
+    marginBottom: 24,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  formCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    marginHorizontal: 24,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   input: {
-    width: "100%",
+    width: '100%',
     borderWidth: 1,
-    borderColor: "#fff",
-    borderRadius: 6,
-    padding: 12,
+    borderColor: '#DC0A2D',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 16,
+    color: '#333',
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  button: {
+    backgroundColor: '#DC0A2D',
+    paddingVertical: 14,
+    borderRadius: 8,
+    marginTop: 8,
     marginBottom: 12,
-    color: "#fff",
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
   },
   errorText: {
-    color: "red",
-    marginBottom: 12,
+    color: '#DC0A2D',
+    marginBottom: 8,
+    textAlign: 'center',
+    fontWeight: '600',
   },
-
-  buttonWrapper: {
-    marginTop: 10,
-    marginBottom: 10,
-    width: "100%", 
+  secondaryButton: {
+    backgroundColor: '#eee',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-
-
+  secondaryButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });

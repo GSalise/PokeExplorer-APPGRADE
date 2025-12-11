@@ -7,6 +7,7 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
+  StatusBar,
 } from 'react-native';
 import { usePokeDexApi } from '../hooks/usePokeApi';
 import LinearGradient from 'react-native-linear-gradient';
@@ -31,17 +32,18 @@ function Home() {
   const { data, isLoading, error, isRefetching, refetch } = usePokeDexApi(
     20,
     offset,
+    false,
   );
 
   console.log('Pokedex error:', error);
 
   if (isLoading) {
     return (
-      <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <ActivityIndicator size={64} color="#ff0000" />
+      <LinearGradient colors={['#DC0A2D', '#FF6B6B']} style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.loadingText}>Loading Pokédex...</Text>
         </View>
       </LinearGradient>
     );
@@ -49,11 +51,18 @@ function Home() {
 
   if (error) {
     return (
-      <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <Text>Error loading Pokédex.</Text>
+      <LinearGradient colors={['#DC0A2D', '#FF6B6B']} style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.centerContent}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorTitle}>Oops!</Text>
+          <Text style={styles.errorMessage}>Failed to load Pokédex</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          >
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
     );
@@ -68,6 +77,7 @@ function Home() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       <LinearGradient
         colors={['#DC0A2D', '#FF6B6B']}
         style={styles.headerGradient}
@@ -184,5 +194,50 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     width: '80%',
     textAlign: 'left',
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '500',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 28,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  retryText: {
+    color: '#DC0A2D',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
