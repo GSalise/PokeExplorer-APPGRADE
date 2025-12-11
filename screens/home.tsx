@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { usePokeDexApi } from '../hooks/usePokeApi';
-import  LinearGradient  from 'react-native-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 
@@ -37,25 +37,25 @@ function Home() {
 
   if (isLoading) {
     return (
-       <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+      <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
         <View
           style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
           <ActivityIndicator size={64} color="#ff0000" />
         </View>
-        </LinearGradient>
+      </LinearGradient>
     );
   }
 
   if (error) {
     return (
-       <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
-         <View
+      <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+        <View
           style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
           <Text>Error loading Pokédex.</Text>
         </View>
-       </LinearGradient>
+      </LinearGradient>
     );
   }
 
@@ -67,7 +67,7 @@ function Home() {
   };
 
   return (
-     <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
+    <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
       <View style={styles.innerContainer}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -92,18 +92,18 @@ function Home() {
               <TouchableOpacity
                 style={styles.card}
                 activeOpacity={0.8}
-                onPress={() => navigation.navigate('PokemonAR', { pokemonid: id })}
+                onPress={() =>
+                  navigation.navigate('PokemonAR', { pokemonid: id })
+                }
                 accessibilityRole="button"
                 accessibilityLabel={`Open AR for ${item.name}`}
               >
+                <Text style={styles.pokemonId}>#{id.padStart(3, '0')}</Text>
                 <Image
                   source={{ uri: getPokemonImageUrl(item.url) }}
                   style={styles.image}
                 />
                 <Text style={styles.name}>{item.name}</Text>
-                <Text style={[styles.flavor_text, { marginTop: 10 }]}>
-                  {item.flavor_text}
-                </Text>
               </TouchableOpacity>
             );
           }}
@@ -112,9 +112,10 @@ function Home() {
           refreshing={isRefetching}
           onRefresh={handleRefresh}
           showsVerticalScrollIndicator={false}
+          numColumns={2}
         />
       </View>
-     </LinearGradient>
+    </LinearGradient>
   );
 }
 
@@ -138,16 +139,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignSelf: 'center',
   },
+
   card: {
-    width: '100%',
-    height: 400,
+    flex: 1,
+    height: 240,
     backgroundColor: '#f2f2f2',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 10,
+    marginHorizontal: 5,
     elevation: 2,
   },
+
   image: {
     width: 160,
     height: 160,
@@ -156,11 +160,19 @@ const styles = StyleSheet.create({
     // borderWidth: 4,
   },
   name: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     width: '80%',
-    textAlign: 'left',
+    textAlign: 'center',
     textTransform: 'capitalize',
+  },
+  pokemonId: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
   flavor_text: {
     fontSize: 12,
