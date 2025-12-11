@@ -34,6 +34,7 @@ const PokemonARScene = ({ pokemonid = '25', onTrackingReady, capture }: ScenePro
       <ViroAmbientLight color="#ffffff" intensity={1000} />
       <ViroAnimatedImage
         key={pokemonid}
+        placeholderSource={{ uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${pokemonid}.gif` }}
         source={{ uri: gifUrl }}
         position={[0, -0.5, -1]}
         scale={[0.3, 0.3, 0.3]}

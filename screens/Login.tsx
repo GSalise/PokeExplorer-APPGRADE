@@ -25,7 +25,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     const user = await signIn(email, password);
     if (user) {
-      navigation.navigate('Home');
+      console.log('Login successful:', user);
     }
   };
 
