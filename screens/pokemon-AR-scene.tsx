@@ -41,7 +41,7 @@ const PokemonARScene = ({ pokemonid = '25', onTrackingReady }: SceneProps) => {
           console.warn('Animated image failed:', e?.nativeEvent ?? e);
         }}
       />
-    </ViroARScene>
+   </ViroARScene>
   );
 };
 
