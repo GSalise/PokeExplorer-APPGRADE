@@ -194,8 +194,11 @@ export default function Map() {
           )}m`,
           [
             {
-              text: 'Go to Home',
-              onPress: () => navigation.navigate('Home'),
+              text: 'Catch!',
+              onPress: () =>
+                navigation.navigate('PokemonAR', {
+                  pokemonid: getPokemonId(pokemon.id),
+                }),
             },
             { text: 'OK' },
           ],
@@ -431,7 +434,7 @@ export default function Map() {
             style={styles.refreshButton}
             onPress={() => handleRefreshSpawn(true)}
           >
-            <Text style={styles.refreshButtonText}>🔄 Refresh Spawn</Text>
+            <Text style={styles.refreshButtonText}>DEBUG - Refresh Spawn</Text>
           </TouchableOpacity>
 
           <MapView
