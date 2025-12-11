@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { signOut } from 'firebase/auth';
 import Camera from './screens/camera';
@@ -10,7 +11,9 @@ import Login from './screens/Login';
 import SignUp from './screens/SignUp';
 import LogoutScreen from './screens/logout';
 import Map from './screens/map';
+import Profile from './screens/profile';
 import { useAuthState } from './hooks/useStateAuth';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export type RootStackParamList = {
   Screens: undefined;
@@ -18,6 +21,7 @@ export type RootStackParamList = {
   PokemonAR: undefined;
   Login: undefined;
   SignUp: undefined;
+  Profile: undefined;
   Camera: undefined;
   Logout: undefined;
   Map: undefined;
@@ -25,19 +29,69 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
+const Tabs = createBottomTabNavigator();
 
-function DrawerScreens() {
+// function TabScreens() {
+//   return (
+//     <Tabs.Navigator screenOptions={{ headerShown: false }}>
+//       <Tabs.Screen name="Home" component={Home} />
+//       <Tabs.Screen name="Map" component={Map} />
+//       <Tabs.Screen name="PokemonAR" component={PokemonAR} />
+//       <Tabs.Screen name="Profile" component={Profile} />
+//     </Tabs.Navigator>
+//   );
+// }
+
+function TabScreens() {
   return (
-    <Drawer.Navigator screenOptions={{ headerShown: false }}>
-      <Drawer.Screen name="Home" component={Home} />
-      <Drawer.Screen name="Map" component={Map} />
-      <Drawer.Screen name="PokemonAR" component={PokemonAR} />
-      <Drawer.Screen name="Camera" component={Camera} />
-      <Drawer.Screen name="Logout" component={LogoutScreen} />
-    </Drawer.Navigator>
+    <Tabs.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: string = 'help-circle-outline';
+
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Map') {
+            iconName = focused ? 'map' : 'map-outline';
+          } else if (route.name === 'PokemonAR') {
+            iconName = focused ? 'cube' : 'cube-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: 'tomato',
+        tabBarInactiveTintColor: 'gray',
+        headerShown: false,
+        tabBarStyle: {
+          height: 70, // Increase height
+          paddingBottom: 10, // Add padding at bottom
+          paddingTop: 10, // Add padding at top
+        },
+      })}
+    >
+      <Tabs.Screen name="Home" component={Home} />
+      <Tabs.Screen name="Map" component={Map} />
+      <Tabs.Screen name="PokemonAR" component={PokemonAR} />
+      <Tabs.Screen name="Profile" component={Profile} />
+    </Tabs.Navigator>
   );
 }
 
+// function DrawerScreens() {
+//   return (
+//     <Drawer.Navigator screenOptions={{ headerShown: false }}>
+//       <Drawer.Screen name="Home" component={Home} />
+//       <Drawer.Screen name="Map" component={Map} />
+//       <Drawer.Screen name="PokemonAR" component={PokemonAR} />
+//       <Drawer.Screen name="Camera" component={Camera} />
+//       <Drawer.Screen name="Logout" component={LogoutScreen} />
+//     </Drawer.Navigator>
+//   );
+// }
+
+// Origintal AppNavigation with auth check
 // function AppNavigation() {
 //   const { user, loading } = useAuthState();
 
@@ -49,7 +103,7 @@ function DrawerScreens() {
 //     <Stack.Navigator screenOptions={{ headerShown: false }}>
 //       {user ? (
 //         // Authenticated → show Drawer
-//         <Stack.Screen name="Screens" component={DrawerScreens} />
+//         <Stack.Screen name="Screens" component={TabScreens} />
 //       ) : (
 //         // Not authenticated → show Login + Signup
 //         <>
@@ -71,12 +125,10 @@ function AppNavigation() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {/* Temporarily skip authentication */}
-      <Stack.Screen name="Screens" component={DrawerScreens} />
+      <Stack.Screen name="Screens" component={TabScreens} />
     </Stack.Navigator>
   );
 }
-
-// ...existing code...
 
 export default function App() {
   const queryClient = new QueryClient();

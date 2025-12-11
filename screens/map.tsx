@@ -422,77 +422,74 @@ export default function Map() {
             </TouchableOpacity>
           </View>
 
-          {/* Debug info */}
-          {/* <View style={styles.debugBox}>
-            <Text style={styles.debugText}>
-              Pokémon: {pokemons.length} | Location: {userRegion ? '✓' : '✗'} |
-              Near: {insideGeofences.current.size}
-            </Text>
-          </View> */}
-
-          {/* Refresh spawn button */}
-          <TouchableOpacity
+          {/* Debug Button - Refresh spawn button */}
+          {/* <TouchableOpacity
             style={styles.refreshButton}
             onPress={() => handleRefreshSpawn(true)}
           >
             <Text style={styles.refreshButtonText}>DEBUG - Refresh Spawn</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
-          <MapView
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            initialRegion={userRegion || INITIAL_REGION}
-            showsUserLocation
-            showsMyLocationButton
-            ref={mapRef}
-          >
-            {/* Display Pokémon markers with geofence circles */}
-            {pokemons.map(pokemon => (
-              <React.Fragment key={pokemon.id}>
-                {/* Geofence circle */}
-                <Circle
-                  center={{
-                    latitude: pokemon.latitude,
-                    longitude: pokemon.longitude,
-                  }}
-                  radius={GEOFENCE_RADIUS}
-                  fillColor="rgba(255, 0, 0, 0.33)"
-                  strokeColor="rgba(255, 0, 0, 0.3)"
-                  strokeWidth={2}
-                />
-
-                {/* Pokemon marker */}
-                <Marker
-                  coordinate={{
-                    latitude: pokemon.latitude,
-                    longitude: pokemon.longitude,
-                  }}
-                  title={pokemon.name || 'Wild Pokémon'}
-                  description={`Tap to encounter!`}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  centerOffset={{ x: 0, y: 0 }}
-                  onPress={() => navigation.navigate('PokemonAR', {
-                    pokemonid: pokemon.pokedexId,
-                  })}
-                >
-                  <View
-                    style={{
-                      backgroundColor: 'rgba(255, 0, 0, 0.8)',
-                      borderRadius: 25,
-                      padding: 5,
-                      borderWidth: 2,
-                      borderColor: 'white',
+          {/* Map Container */}
+          <View style={styles.mapContainer}>
+            <MapView
+              style={styles.mapSmall}
+              provider={PROVIDER_GOOGLE}
+              initialRegion={userRegion || INITIAL_REGION}
+              showsUserLocation
+              showsMyLocationButton
+              ref={mapRef}
+            >
+              {/* Display Pokémon markers with geofence circles */}
+              {pokemons.map(pokemon => (
+                <React.Fragment key={pokemon.id}>
+                  {/* Geofence circle */}
+                  <Circle
+                    center={{
+                      latitude: pokemon.latitude,
+                      longitude: pokemon.longitude,
                     }}
+                    radius={GEOFENCE_RADIUS}
+                    fillColor="rgba(255, 0, 0, 0.33)"
+                    strokeColor="rgba(255, 0, 0, 0.3)"
+                    strokeWidth={2}
+                  />
+
+                  {/* Pokemon marker */}
+                  <Marker
+                    coordinate={{
+                      latitude: pokemon.latitude,
+                      longitude: pokemon.longitude,
+                    }}
+                    title={
+                      pokemon.name
+                        ? pokemon.name.charAt(0).toUpperCase() +
+                          pokemon.name.slice(1)
+                        : 'Wild Pokémon'
+                    }
+                    description={`Go to this location to encounter!`}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    centerOffset={{ x: 0, y: 0 }}
                   >
-                    <Image
-                      source={{ uri: pokemon.spriteUrl }}
-                      style={{ width: 40, height: 40 }}
-                    />
-                  </View>
-                </Marker>
-              </React.Fragment>
-            ))}
-          </MapView>
+                    <View
+                      style={{
+                        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                        borderRadius: 25,
+                        padding: 5,
+                        borderWidth: 2,
+                        borderColor: 'white',
+                      }}
+                    >
+                      <Image
+                        source={{ uri: pokemon.spriteUrl }}
+                        style={{ width: 40, height: 40 }}
+                      />
+                    </View>
+                  </Marker>
+                </React.Fragment>
+              ))}
+            </MapView>
+          </View>
         </>
       )}
     </View>
@@ -502,8 +499,25 @@ export default function Map() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f6fa',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  map: {
+  mapContainer: {
+    width: '90%',
+    height: '70%',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    overflow: 'hidden',
+    alignSelf: 'center',
+    marginTop: 40,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  mapSmall: {
     width: '100%',
     height: '100%',
   },
