@@ -7,6 +7,7 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
+  StatusBar,
 } from 'react-native';
 import { usePokeDexApi } from '../hooks/usePokeApi';
 import LinearGradient from 'react-native-linear-gradient';
@@ -31,17 +32,18 @@ function Home() {
   const { data, isLoading, error, isRefetching, refetch } = usePokeDexApi(
     20,
     offset,
+    false,
   );
 
   console.log('Pokedex error:', error);
 
   if (isLoading) {
     return (
-      <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <ActivityIndicator size={64} color="#ff0000" />
+      <LinearGradient colors={['#DC0A2D', '#FF6B6B']} style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.loadingText}>Loading Pokédex...</Text>
         </View>
       </LinearGradient>
     );
@@ -49,11 +51,18 @@ function Home() {
 
   if (error) {
     return (
-      <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <Text>Error loading Pokédex.</Text>
+      <LinearGradient colors={['#DC0A2D', '#FF6B6B']} style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.centerContent}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorTitle}>Oops!</Text>
+          <Text style={styles.errorMessage}>Failed to load Pokédex</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          >
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
     );
@@ -67,22 +76,17 @@ function Home() {
   };
 
   return (
-    <LinearGradient colors={['#ff0000', '#fff']} style={styles.container}>
-      <View style={styles.innerContainer}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['#DC0A2D', '#FF6B6B']}
+        style={styles.headerGradient}
+      >
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.hamburger}
-            onPress={() => navigation.openDrawer()}
-            accessibilityLabel="Open drawer menu"
-          >
-            <View style={styles.bar} />
-            <View style={styles.bar} />
-            <View style={styles.bar} />
-          </TouchableOpacity>
           <Text style={styles.title}>Pokédex</Text>
-          {/* To make things even */}
-          <TouchableOpacity style={styles.hamburger}></TouchableOpacity>
         </View>
+      </LinearGradient>
+      <View style={styles.innerContainer}>
         <FlatList
           data={data?.results}
           keyExtractor={item => item.name}
@@ -115,7 +119,7 @@ function Home() {
           numColumns={2}
         />
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -124,8 +128,29 @@ export default Home;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: 32,
+    backgroundColor: '#f5f5f5',
+  },
+  headerGradient: {
+    paddingTop: 48,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  header: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
   innerContainer: {
     flex: 1,
@@ -133,13 +158,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 10,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    alignSelf: 'center',
-  },
-
   card: {
     flex: 1,
     height: 240,
@@ -151,13 +169,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     elevation: 2,
   },
-
   image: {
     width: 160,
     height: 160,
     marginBottom: 12,
-    // borderColor: 'red',
-    // borderWidth: 4,
   },
   name: {
     fontSize: 16,
@@ -178,27 +193,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
     width: '80%',
-    // borderColor: 'red',
-    // borderWidth: 4,
     textAlign: 'left',
   },
-  header: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexDirection: 'row',
-    width: '100%',
-  },
-  hamburger: {
-    width: 36,
-    height: 36,
+  centerContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  bar: {
-    width: 24,
-    height: 3,
-    backgroundColor: 'black',
-    marginVertical: 2,
-    borderRadius: 2,
+  loadingText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '500',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 28,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  retryText: {
+    color: '#DC0A2D',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
