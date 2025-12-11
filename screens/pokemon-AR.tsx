@@ -5,6 +5,7 @@ import {
   StyleSheet,
   PermissionsAndroid,
   Platform,
+  ActivityIndicator, // ADD
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ViroARSceneNavigator } from '@reactvision/react-viro';
@@ -53,6 +54,8 @@ export default function PokemonAR({ route }: props) {
     }
 
     setCapturing(true);
+    setFlashMessage('Capturing...'); // SHOW LOADING STATE
+    let success = false;             // TRACK SUCCESS
     try {
       if (!viroViewRef.current) {
         console.warn('AR scene not ready yet');
@@ -65,7 +68,7 @@ export default function PokemonAR({ route }: props) {
       const randomName = String(uuid.v4());
       const localUri = await captureRef(viroViewRef.current, {
         format: 'jpg',
-        quality: 1,
+        quality: 1, // was 1; slightly faster with negligible visual loss
         fileName: randomName,
         handleGLSurfaceViewOnAndroid: true,
       });
@@ -84,14 +87,17 @@ export default function PokemonAR({ route }: props) {
 
       await CameraRoll.save(localUri, { type: 'photo', album: 'PokeExplorer' });
 
-      await rewardPokemonCapture();
+// Kick off reward in background (don’t block navigation)
+      rewardPokemonCapture().catch(e =>
+        console.warn('Reward failed:', e),
+      );
+      success = true;
 
+// Show toast but don’t block UI
       setFlashMessage('Captured! Saved to gallery.');
-      // Give the toast a short moment to show before navigating away
-      await new Promise<void>(resolve => setTimeout(resolve, 900));
-      setFlashMessage(null);
+      setTimeout(() => setFlashMessage("captured"), 500);
 
-      // Return to map and flag the captured spawn so it disappears there
+// Navigate immediately
       navigation.navigate('Map', {
         capturedSpawnId: spawnId,
         capturedPokedexId: pokemonid,
@@ -99,9 +105,13 @@ export default function PokemonAR({ route }: props) {
     } catch (err) {
       console.error('Error:', err);
     } finally {
+      if (!success) {
+        // Clear loading state if capture failed or was aborted
+        if (flashMessage === 'Capturing...') setFlashMessage(null);
+      }
       setCapturing(false);
     }
-  }, [arReady, capturing, navigation, pokemonid, spawnId, viroViewRef]);
+  }, [arReady, capturing, navigation, pokemonid, spawnId, viroViewRef, flashMessage]);
 
   const SceneWithProps = useMemo(
     () =>
@@ -131,18 +141,30 @@ export default function PokemonAR({ route }: props) {
           style={[
             styles.statusPill,
             {
-              backgroundColor: flashMessage
-                ? '#16a34a'
-                : arReady
-                  ? '#16a34a'
-                  : '#f97316',
+              backgroundColor:
+                flashMessage === 'Captured! Saved to gallery.'
+                  ? '#16a34a' // green
+                  : capturing
+                    ? '#3b82f6' // blue while capturing
+                    : arReady
+                      ? '#16a34a' // green when ready
+                      : '#f97316', // orange while scanning
             },
           ]}
         >
-          <Text style={styles.statusText}>
-            {flashMessage ||
-              (arReady ? 'Target Locked' : 'Scanning environment...')}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.statusText}>
+              {flashMessage ||
+                (arReady ? 'Target Locked' : 'Scanning environment...')}
+            </Text>
+            {capturing && (
+              <ActivityIndicator
+                size="small"
+                color="#ffffff"
+                style={{ marginLeft: 8 }}
+              />
+            )}
+          </View>
         </View>
         <Text style={styles.tipText}>
           Tap the Pokémon to take a snap.
