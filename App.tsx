@@ -88,7 +88,7 @@ function AppNavigation() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {/* Temporarily skip authentication */}
-      <Stack.Screen name="Screens" component={DrawerScreens} />
+      <Stack.Screen name="Screens" component={TabScreens} />
     </Stack.Navigator>
   );
 }
