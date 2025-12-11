@@ -86,10 +86,6 @@ export default function Map() {
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const hasSpawned = useRef(false);
   const insideGeofences = useRef(new Set<string>()); // Track which geofences user is inside
-  const [lastStaticLocation, setLastStaticLocation] = useState<Region | null>(
-    null,
-  );
-  const [lastMovedAt, setLastMovedAt] = useState(Date.now());
 
   // Load cached location
   const loadCachedLocation = async () => {
@@ -141,37 +137,39 @@ export default function Map() {
     }
   };
 
-  const spawnPokemon = async (latitude: number, longitude: number) => {
-    if (!data?.results) return;
-
-    const spawnRadius = 0.0009;
-    const newPokemons: Pokemon[] = [];
-
-    for (let i = 0; i < data.results.length; i++) {
-      const poke = data.results[i];
-      const id = getPokemonId(poke.url);
-      const spriteUrl = getPokemonImageUrl(poke.url);
-
-      // Prefetch the image
-      await Image.prefetch(spriteUrl);
-
-      const latOffset = (Math.random() - 0.5) * spawnRadius;
-      const lonOffset = (Math.random() - 0.5) * spawnRadius;
-
-      newPokemons.push({
-        id: `pokemon-${Date.now()}-${i}`,
-        latitude: latitude + latOffset,
-        longitude: longitude + lonOffset,
-        spriteUrl,
-        name: poke.name,
-      });
+  // Spawn pokemon function
+  const spawnPokemon = (latitude: number, longitude: number) => {
+    if (!data?.results || data.results.length === 0) {
+      console.warn('No Pokemon data available');
+      return;
     }
 
+    const spawnRadius = 0.0009; // ~100 meters
+    const newPokemons: Pokemon[] = [];
+
+    data.results.forEach((poke, index) => {
+      const latOffset = (Math.random() - 0.5) * spawnRadius;
+      const lonOffset = (Math.random() - 0.5) * spawnRadius;
+      const id = getPokemonId(poke.url);
+      newPokemons.push({
+        id: `pokemon-${Date.now()}-${index}`,
+        latitude: latitude + latOffset,
+        longitude: longitude + lonOffset,
+        spriteUrl: getPokemonImageUrl(poke.url),
+        name: poke.name,
+      });
+    });
+
+    for (const p of newPokemons) {
+      console.log(
+        `- ${p.name} of id: ${p.id} at (${p.latitude}, ${p.longitude})`,
+      );
+    }
     setPokemons(newPokemons);
     hasSpawned.current = true;
   };
 
-  // Check if user is inside the pokemon's geofence
+  // Check if user is near any Pokemon (geofencing)
   const checkPokemonProximity = (userLat: number, userLon: number) => {
     pokemons.forEach(pokemon => {
       const distance = calculateDistance(
@@ -192,13 +190,7 @@ export default function Map() {
           `A wild ${pokemon.name || 'Pokémon'} appeared! Distance: ${Math.round(
             distance,
           )}m`,
-          [
-            {
-              text: 'Go to Home',
-              onPress: () => navigation.navigate('Home'),
-            },
-            { text: 'OK' },
-          ],
+          [{ text: 'OK' }],
         );
         console.log(
           `Entered geofence for ${pokemon.name} at ${Math.round(distance)}m`,
@@ -306,37 +298,25 @@ export default function Map() {
     const watchId = Geolocation.watchPosition(
       pos => {
         const { latitude, longitude } = pos.coords;
-        const newRegion = {
+        console.log('Position update:', latitude, longitude);
+        setUserRegion({
           latitude,
           longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
-        };
-
-        // If user moved more than 10 meters, update lastMovedAt
-        if (
-          !lastStaticLocation ||
-          calculateDistance(
-            lastStaticLocation.latitude,
-            lastStaticLocation.longitude,
-            latitude,
-            longitude,
-          ) > 10
-        ) {
-          setLastMovedAt(Date.now());
-          setLastStaticLocation(newRegion);
-        }
-
-        setUserRegion(newRegion);
+        });
+        // Save to cache on every update
         saveCachedLocation(latitude, longitude);
+
+        // Check proximity to Pokemon
         checkPokemonProximity(latitude, longitude);
       },
       err => console.warn('Watch error:', err),
       {
         enableHighAccuracy: true,
-        distanceFilter: 10,
-        interval: 5000,
-        fastestInterval: 2000,
+        distanceFilter: 10, // Update every 10 meters for better geofencing
+        interval: 5000, // Check every 5 seconds
+        fastestInterval: 2000, // Fastest update every 2 seconds
       },
     );
 
@@ -344,19 +324,7 @@ export default function Map() {
       Geolocation.clearWatch(watchId);
       insideGeofences.current.clear();
     };
-  }, [hasLocationPermission, pokemons, lastStaticLocation]);
-
-  // Timer to refresh spawn every 5 minutes if user hasn't moved
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // 5 minutes = 300000 ms
-      if (Date.now() - lastMovedAt > 300000) {
-        handleRefreshSpawn();
-      }
-    }, 60000); // Check every minute
-
-    return () => clearInterval(interval);
-  }, [lastMovedAt, userRegion]);
+  }, [hasLocationPermission, pokemons]);
 
   // Spawn Pokémon on initial load only
   useEffect(() => {
@@ -365,13 +333,13 @@ export default function Map() {
     if (!data?.results) return;
 
     // Only spawn if we haven't spawned yet
-    if (!hasSpawned.current) {
-      spawnPokemon(userRegion.latitude, userRegion.longitude);
-    }
+    // if (!hasSpawned.current) {
+    //   spawnPokemon(userRegion.latitude, userRegion.longitude);
+    // }
   }, [hasLocationPermission, userRegion, data]);
 
   // Manual refresh pokemon spawn
-  const handleRefreshSpawn = async (manual: boolean = false) => {
+  const handleRefreshSpawn = async () => {
     if (userRegion) {
       // Generate new random offset (0-148 for 151 total Pokemon)
       const newOffset = Math.floor(Math.random() * 148);
@@ -389,17 +357,14 @@ export default function Map() {
         spawnPokemon(userRegion.latitude, userRegion.longitude);
       }
 
-      if (manual) {
-        Alert.alert('Spawned!', 'New Pokémon have appeared nearby!');
-      }
+      Alert.alert('🎮 Spawned!', 'New Pokémon have appeared nearby!');
     } else {
       Alert.alert(
-        'No Location',
+        '⚠️ No Location',
         'Please wait for your location to be detected.',
       );
     }
   };
-
   return (
     <View style={styles.container}>
       {!hasLocationPermission ? (
@@ -419,17 +384,17 @@ export default function Map() {
           </View>
 
           {/* Debug info */}
-          {/* <View style={styles.debugBox}>
+          <View style={styles.debugBox}>
             <Text style={styles.debugText}>
               Pokémon: {pokemons.length} | Location: {userRegion ? '✓' : '✗'} |
               Near: {insideGeofences.current.size}
             </Text>
-          </View> */}
+          </View>
 
           {/* Refresh spawn button */}
           <TouchableOpacity
             style={styles.refreshButton}
-            onPress={() => handleRefreshSpawn(true)}
+            onPress={handleRefreshSpawn}
           >
             <Text style={styles.refreshButtonText}>🔄 Refresh Spawn</Text>
           </TouchableOpacity>
@@ -437,7 +402,7 @@ export default function Map() {
           <MapView
             style={styles.map}
             provider={PROVIDER_GOOGLE}
-            initialRegion={userRegion || INITIAL_REGION}
+            region={userRegion || INITIAL_REGION}
             showsUserLocation
             showsMyLocationButton
             ref={mapRef}
@@ -562,3 +527,48 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+// {
+//   pokemons.map(pokemon => (
+//     <React.Fragment key={pokemon.id}>
+//       {/* Geofence circle */}
+//       <Circle
+//         center={{
+//           latitude: pokemon.latitude,
+//           longitude: pokemon.longitude,
+//         }}
+//         radius={GEOFENCE_RADIUS}
+//         fillColor="rgba(255, 0, 0, 0.33)"
+//         strokeColor="rgba(255, 0, 0, 0.3)"
+//         strokeWidth={2}
+//       />
+
+//       {/* Pokemon marker */}
+//       <Marker
+//         coordinate={{
+//           latitude: pokemon.latitude,
+//           longitude: pokemon.longitude,
+//         }}
+//         title={pokemon.name || 'Wild Pokémon'}
+//         description={`Tap to encounter!`}
+//         anchor={{ x: 0.5, y: 0.5 }}
+//         centerOffset={{ x: 0, y: 0 }}
+//       >
+//         <View
+//           style={{
+//             backgroundColor: 'rgba(255, 0, 0, 0.8)',
+//             borderRadius: 25,
+//             padding: 5,
+//             borderWidth: 2,
+//             borderColor: 'white',
+//           }}
+//         >
+//           <Image
+//             source={{ uri: pokemon.spriteUrl }}
+//             style={{ width: 40, height: 40 }}
+//           />
+//         </View>
+//       </Marker>
+//     </React.Fragment>
+//   ));
+// }

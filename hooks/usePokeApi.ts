@@ -4,11 +4,17 @@ import axios from 'axios';
 
 const CACHE_PREFIX = 'pokemonListCache';
 
+export interface PokemonData {
+  name: string;
+  url: string;
+  flavor_text?: string;
+}
+
 interface PokemonListResponse {
   count: number;
   next: string | null;
   previous: string | null;
-  results: Array<{ name: string; url: string; flavor_text: string }>;
+  results: Array<PokemonData>;
 }
 
 interface PokemonSpeciesResponse {
@@ -18,48 +24,39 @@ interface PokemonSpeciesResponse {
     version: { name: string };
   }>;
 }
-// const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
-//   const cacheKey = `${CACHE_PREFIX}_${limit}_${offset}`;
-//   const cached = await AsyncStorage.getItem(cacheKey);
 
-//   if (cached) {
-//     const { timestamp, data } = JSON.parse(cached);
-//     if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-//       return data;
-//     }
-//   }
+// Fetch Pokemon list without flavor text (faster)
+const fetchPokemonSimple = async (limit: number, offset: number) => {
+  const cacheKey = `${CACHE_PREFIX}_simple_${limit}_${offset}`;
+  const cached = await AsyncStorage.getItem(cacheKey);
 
-//   try {
-//     console.log('Fetching from PokeAPI...');
+  if (cached) {
+    const { timestamp, data } = JSON.parse(cached);
+    if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+      return data;
+    }
+  }
 
-//     // Use fetch instead of axios
-//     const response = await fetch(
-//       `https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`,
-//     );
+  const listResp = await axios.get(
+    `https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`,
+  );
 
-//     if (!response.ok) {
-//       throw new Error(`HTTP error! status: ${response.status}`);
-//     }
+  const data = {
+    count: listResp.data.count,
+    next: listResp.data.next,
+    previous: listResp.data.previous,
+    results: listResp.data.results,
+  };
 
-//     const listData = await response.json();
-//     console.log('API Response received:', listData);
+  await AsyncStorage.setItem(
+    cacheKey,
+    JSON.stringify({ timestamp: Date.now(), data }),
+  );
 
-//     // Return simplified data for now
-//     return {
-//       count: listData.count,
-//       next: listData.next,
-//       previous: listData.previous,
-//       results: listData.results.map((p: any) => ({
-//         ...p,
-//         flavor_text: 'A Pokémon species',
-//       })),
-//     };
-//   } catch (err) {
-//     console.error('Fetch error details:', err);
-//     throw err;
-//   }
-// };
+  return data;
+};
 
+// Fetch Pokemon list with flavor text (slower)
 const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
   const cacheKey = `${CACHE_PREFIX}_${limit}_${offset}`;
   const cached = await AsyncStorage.getItem(cacheKey);
@@ -77,7 +74,7 @@ const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
   );
   const results = listResp.data.results;
 
-  // Fetches the flvaor_text of the pokemon
+  // Fetches the flavor_text of the pokemon
   const detailed = await Promise.all(
     results.map(async (p: { name: string; url: string }) => {
       const pokeResp = await axios.get(p.url);
@@ -114,10 +111,17 @@ const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
   return data;
 };
 
-export const usePokeDexApi = (limit: number = 20, offset: number = 0) => {
+export const usePokeDexApi = (
+  limit: number = 20,
+  offset: number = 0,
+  withFlavor: boolean = true,
+) => {
   const query = useQuery<PokemonListResponse>({
-    queryKey: ['pokemonList', limit, offset],
-    queryFn: () => fetchPokemonWithFlavor(limit, offset),
+    queryKey: ['pokemonList', limit, offset, withFlavor],
+    queryFn: () =>
+      withFlavor
+        ? fetchPokemonWithFlavor(limit, offset)
+        : fetchPokemonSimple(limit, offset),
   });
   return query;
 };
