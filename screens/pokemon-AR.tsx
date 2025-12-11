@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Pressable,
@@ -23,18 +23,10 @@ export default function PokemonAR({ route }: props) {
   const [capturing, setCapturing] = useState(false);
 
   const pokemonid = route.params?.pokemonid ?? '25';
-  const SceneWithProps = useMemo(
-    () =>
-      function Scene() {
-        return (
-          <PokemonARScene
-            pokemonid={pokemonid}
-            onTrackingReady={() => setArReady(true)}
-          />
-        );
-      },
-    [pokemonid],
-  );
+
+  const handleTrackingReady = useCallback(() => {
+    setArReady(true);
+  }, []);
 
   async function ensurePhotoPermission() {
     if (Platform.OS !== 'android') return true;
@@ -51,12 +43,13 @@ export default function PokemonAR({ route }: props) {
       requestAnimationFrame(() => setTimeout(resolve, 0)),
     );
 
-  const capturePokemon = async () => {
-    if (!arReady) {
-      console.warn('AR tracking not ready yet');
-      return;
-    }
+  const capturePokemon = useCallback(async () => {
     if (capturing) return;
+    
+    if (!arReady) {
+      console.warn('AR tracking not ready yet, attempting capture anyway...');
+    }
+    
     setCapturing(true);
     try {
       if (!viroViewRef.current) {
@@ -95,7 +88,21 @@ export default function PokemonAR({ route }: props) {
     } finally {
       setCapturing(false);
     }
-  };
+  }, [arReady, viroViewRef]);
+
+  const SceneWithProps = useMemo(
+    () =>
+      function Scene() {
+        return (
+          <PokemonARScene
+            pokemonid={pokemonid}
+            onTrackingReady={handleTrackingReady}
+            capture={capturePokemon}
+          />
+        );
+      },
+    [pokemonid, capturePokemon, handleTrackingReady],
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -106,9 +113,9 @@ export default function PokemonAR({ route }: props) {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={styles.crosshair} />
+      
 
-      <Pressable
+      {/* <Pressable
         onPress={capturePokemon}
         style={[
           styles.captureButton,
@@ -119,7 +126,7 @@ export default function PokemonAR({ route }: props) {
         <Text style={styles.captureText}>
           {capturing ? 'CAPTURING…' : 'CAPTURE'}
         </Text>
-      </Pressable>
+      </Pressable> */}
 
       {flashMessage && (
         <View style={styles.flashBanner}>
