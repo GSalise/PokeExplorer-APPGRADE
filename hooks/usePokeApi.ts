@@ -7,7 +7,21 @@ const CACHE_PREFIX = 'pokemonListCache';
 export interface PokemonData {
   name: string;
   url: string;
-  flavor_text?: string;
+  types?: string[];
+  abilities?: string[];
+  stats?: {
+    hp: number;
+    attack: number;
+    defense: number;
+    specialAttack: number;
+    specialDefense: number;
+    speed: number;
+  };
+  sprites?: {
+    front_default: string;
+    front_shiny?: string;
+    official_artwork?: string;
+  };
 }
 
 interface PokemonListResponse {
@@ -17,15 +31,7 @@ interface PokemonListResponse {
   results: Array<PokemonData>;
 }
 
-interface PokemonSpeciesResponse {
-  flavor_text_entries: Array<{
-    flavor_text: string;
-    language: { name: string };
-    version: { name: string };
-  }>;
-}
-
-// Fetch Pokemon list without flavor text (faster)
+// Fetch Pokemon list without details (faster)
 const fetchPokemonSimple = async (limit: number, offset: number) => {
   const cacheKey = `${CACHE_PREFIX}_simple_${limit}_${offset}`;
   const cached = await AsyncStorage.getItem(cacheKey);
@@ -56,9 +62,9 @@ const fetchPokemonSimple = async (limit: number, offset: number) => {
   return data;
 };
 
-// Fetch Pokemon list with flavor text (slower)
-const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
-  const cacheKey = `${CACHE_PREFIX}_${limit}_${offset}`;
+// Fetch Pokemon list with full details (types, abilities, stats, sprites)
+const fetchPokemonWithDetails = async (limit: number, offset: number) => {
+  const cacheKey = `${CACHE_PREFIX}_detailed_${limit}_${offset}`;
   const cached = await AsyncStorage.getItem(cacheKey);
 
   if (cached) {
@@ -74,24 +80,47 @@ const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
   );
   const results = listResp.data.results;
 
-  // Fetches the flavor_text of the pokemon
+  // Fetch detailed info for each Pokémon
   const detailed = await Promise.all(
     results.map(async (p: { name: string; url: string }) => {
       const pokeResp = await axios.get(p.url);
-      const speciesUrl = pokeResp.data.species.url;
+      const pokeData = pokeResp.data;
 
-      const speciesResp = await axios.get(speciesUrl);
-      const entries = speciesResp.data
-        .flavor_text_entries as PokemonSpeciesResponse['flavor_text_entries'];
+      // Extract types
+      const types = pokeData.types.map(
+        (t: { type: { name: string } }) => t.type.name,
+      );
 
-      // Pick English flavor text
-      const engEntry = entries.find(e => e.language.name === 'en');
-      const flavorText = engEntry ? engEntry.flavor_text : '';
+      // Extract abilities
+      const abilities = pokeData.abilities.map(
+        (a: { ability: { name: string } }) => a.ability.name,
+      );
+
+      // Extract stats
+      const stats = {
+        hp: pokeData.stats[0].base_stat,
+        attack: pokeData.stats[1].base_stat,
+        defense: pokeData.stats[2].base_stat,
+        specialAttack: pokeData.stats[3].base_stat,
+        specialDefense: pokeData.stats[4].base_stat,
+        speed: pokeData.stats[5].base_stat,
+      };
+
+      // Extract sprites
+      const sprites = {
+        front_default: pokeData.sprites.front_default,
+        front_shiny: pokeData.sprites.front_shiny,
+        official_artwork:
+          pokeData.sprites.other?.['official-artwork']?.front_default,
+      };
 
       return {
         name: p.name,
         url: p.url,
-        flavor_text: flavorText,
+        types,
+        abilities,
+        stats,
+        sprites,
       };
     }),
   );
@@ -114,13 +143,13 @@ const fetchPokemonWithFlavor = async (limit: number, offset: number) => {
 export const usePokeDexApi = (
   limit: number = 20,
   offset: number = 0,
-  withFlavor: boolean = true,
+  detailed: boolean = true,
 ) => {
   const query = useQuery<PokemonListResponse>({
-    queryKey: ['pokemonList', limit, offset, withFlavor],
+    queryKey: ['pokemonList', limit, offset, detailed],
     queryFn: () =>
-      withFlavor
-        ? fetchPokemonWithFlavor(limit, offset)
+      detailed
+        ? fetchPokemonWithDetails(limit, offset)
         : fetchPokemonSimple(limit, offset),
   });
   return query;
