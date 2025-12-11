@@ -11,7 +11,7 @@ import SignUp from './screens/SignUp';
 import LogoutScreen from './screens/logout';
 import Map from './screens/map';
 import { useAuthState } from './hooks/useStateAuth';
-
+import { UserProfileProvider } from './context/userProfileContext';
 export type RootStackParamList = {
   Screens: undefined;
   Home: undefined;
@@ -81,10 +81,13 @@ function AppNavigation() {
 export default function App() {
   const queryClient = new QueryClient();
   return (
+
     <QueryClientProvider client={queryClient}>
+      <UserProfileProvider>
       <NavigationContainer>
         <AppNavigation />
       </NavigationContainer>
+      </UserProfileProvider>
     </QueryClientProvider>
   );
 }

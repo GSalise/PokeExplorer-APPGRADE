@@ -12,7 +12,7 @@ import { captureRef } from 'react-native-view-shot';
 import uuid from 'react-native-uuid';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import PokemonARScene from './pokemon-AR-scene';
-
+import { rewardPokemonCapture } from '../services/profileService';
 type props = {
   route: { params?: { pokemonid?: string } };
 };
@@ -81,6 +81,9 @@ export default function PokemonAR({ route }: props) {
       }
 
       await CameraRoll.save(localUri, { type: 'photo', album: 'PokeExplorer' });
+
+      await rewardPokemonCapture();
+
       setFlashMessage(true);
       setTimeout(() => setFlashMessage(false), 1500);
     } catch (err) {
