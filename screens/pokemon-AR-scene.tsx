@@ -10,9 +10,10 @@ import {
 type SceneProps = {
   pokemonid?: string;
   onTrackingReady?: () => void;
+  capture?: () => void;
 };
 
-const PokemonARScene = ({ pokemonid = '25', onTrackingReady }: SceneProps) => {
+const PokemonARScene = ({ pokemonid = '25', onTrackingReady, capture }: SceneProps) => {
   const [text, setText] = useState('Initializing AR...');
   const firedOnce = useRef(false);
 
@@ -40,8 +41,9 @@ const PokemonARScene = ({ pokemonid = '25', onTrackingReady }: SceneProps) => {
         onError={(e) => {
           console.warn('Animated image failed:', e?.nativeEvent ?? e);
         }}
+        onClick={capture}
       />
-    </ViroARScene>
+   </ViroARScene>
   );
 };
 

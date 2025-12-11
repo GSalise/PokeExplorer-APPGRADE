@@ -160,6 +160,7 @@ export default function Map() {
 
       newPokemons.push({
         id: `pokemon-${Date.now()}-${i}`,
+        pokedexId: id, // Store the actual Pokedex ID
         latitude: latitude + latOffset,
         longitude: longitude + lonOffset,
         spriteUrl,
@@ -197,7 +198,7 @@ export default function Map() {
               text: 'Catch!',
               onPress: () =>
                 navigation.navigate('PokemonAR', {
-                  pokemonid: getPokemonId(pokemon.id),
+                  pokemonid: pokemon.pokedexId, // Use the actual Pokedex ID
                 }),
             },
             { text: 'OK' },
@@ -470,6 +471,9 @@ export default function Map() {
                   description={`Tap to encounter!`}
                   anchor={{ x: 0.5, y: 0.5 }}
                   centerOffset={{ x: 0, y: 0 }}
+                  onPress={() => navigation.navigate('PokemonAR', {
+                    pokemonid: pokemon.pokedexId,
+                  })}
                 >
                   <View
                     style={{
