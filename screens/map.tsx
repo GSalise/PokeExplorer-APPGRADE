@@ -21,12 +21,12 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LinearGradient from 'react-native-linear-gradient';
 import { usePokeDexApi } from '../hooks/usePokeApi';
 import { calculateDistance } from '../utils/calculateDistance';
 import { Pokemon } from '../types/pokemon';
 import { CachedLocation } from '../types/cachedLoaction';
 import { getPokemonId, getPokemonImageUrl } from '../utils/pokeApiUtils';
+import LinearGradient from 'react-native-linear-gradient';
 
 // Initial region centered at USC
 const INITIAL_REGION = {
@@ -40,17 +40,12 @@ const LOCATION_CACHE_KEY = '@user_last_location';
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 const GEOFENCE_RADIUS = 10; // 10 meters
 
+// Helper to extract the numeric id for navigation
+
 const PermissionPage = () => (
-  <LinearGradient colors={['#DC0A2D', '#FF6B6B']} style={styles.container}>
-    <StatusBar barStyle="light-content" />
-    <View style={styles.centerContent}>
-      <Text style={styles.errorIcon}>📍</Text>
-      <Text style={styles.errorTitle}>Location Access</Text>
-      <Text style={styles.errorMessage}>
-        Location permission is required to use the map and find nearby Pokémon.
-      </Text>
-    </View>
-  </LinearGradient>
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text>Location permission is required to use the map.</Text>
+  </View>
 );
 
 const requestLocationPermission = async () => {
@@ -92,7 +87,7 @@ export default function Map() {
   const [userRegion, setUserRegion] = useState<Region | null>(null);
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const hasSpawned = useRef(false);
-  const insideGeofences = useRef(new Set<string>());
+  const insideGeofences = useRef(new Set<string>()); // Track which geofences user is inside
   const [lastStaticLocation, setLastStaticLocation] = useState<Region | null>(
     null,
   );
@@ -106,6 +101,7 @@ export default function Map() {
         const cachedData: CachedLocation = JSON.parse(cached);
         const now = Date.now();
 
+        // Check if cache is still valid (within 5 minutes)
         if (now - cachedData.timestamp < LOCATION_CACHE_DURATION) {
           console.log(
             'Using cached location:',
@@ -166,7 +162,7 @@ export default function Map() {
 
       newPokemons.push({
         id: `pokemon-${Date.now()}-${i}`,
-        pokedexId: id,
+        pokedexId: id, // Store the actual Pokedex ID
         latitude: latitude + latOffset,
         longitude: longitude + lonOffset,
         spriteUrl,
@@ -178,6 +174,7 @@ export default function Map() {
     hasSpawned.current = true;
   };
 
+  // Check if user is inside the pokemon's geofence
   const checkPokemonProximity = (userLat: number, userLon: number) => {
     pokemons.forEach(pokemon => {
       const distance = calculateDistance(
@@ -190,6 +187,7 @@ export default function Map() {
       const isInside = distance <= GEOFENCE_RADIUS;
       const wasInside = insideGeofences.current.has(pokemon.id);
 
+      // User just entered geofence
       if (isInside && !wasInside) {
         insideGeofences.current.add(pokemon.id);
         Alert.alert(
@@ -202,7 +200,7 @@ export default function Map() {
               text: 'Catch!',
               onPress: () =>
                 navigation.navigate('PokemonAR', {
-                  pokemonid: pokemon.pokedexId,
+                  pokemonid: pokemon.pokedexId, // Use the actual Pokedex ID
                 }),
             },
             { text: 'OK' },
@@ -211,13 +209,16 @@ export default function Map() {
         console.log(
           `Entered geofence for ${pokemon.name} at ${Math.round(distance)}m`,
         );
-      } else if (!isInside && wasInside) {
+      }
+      // User left geofence
+      else if (!isInside && wasInside) {
         insideGeofences.current.delete(pokemon.id);
         console.log(`Left geofence for ${pokemon.name}`);
       }
     });
   };
 
+  // Checks if location permission is granted and gets current location
   useEffect(() => {
     const initializeLocation = async () => {
       const granted = await requestLocationPermission();
@@ -407,20 +408,28 @@ export default function Map() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
       {!hasLocationPermission ? (
         <PermissionPage />
       ) : (
         <>
+          <StatusBar barStyle="light-content" />
           <LinearGradient
             colors={['#DC0A2D', '#FF6B6B']}
             style={styles.headerGradient}
           >
             <View style={styles.header}>
-              <Text style={styles.title}>PokéMap</Text>
+              <Text style={styles.title}>Pokédex</Text>
             </View>
           </LinearGradient>
+          {/* Debug Button - Refresh spawn button */}
+          {/* <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={() => handleRefreshSpawn(true)}
+          >
+            <Text style={styles.refreshButtonText}>DEBUG - Refresh Spawn</Text>
+          </TouchableOpacity> */}
 
+          {/* Map Container */}
           <View style={styles.mapContainer}>
             <MapView
               style={styles.mapSmall}
@@ -430,19 +439,22 @@ export default function Map() {
               showsMyLocationButton
               ref={mapRef}
             >
+              {/* Display Pokémon markers with geofence circles */}
               {pokemons.map(pokemon => (
                 <React.Fragment key={pokemon.id}>
+                  {/* Geofence circle */}
                   <Circle
                     center={{
                       latitude: pokemon.latitude,
                       longitude: pokemon.longitude,
                     }}
                     radius={GEOFENCE_RADIUS}
-                    fillColor="rgba(220, 10, 45, 0.2)"
-                    strokeColor="rgba(220, 10, 45, 0.5)"
+                    fillColor="rgba(255, 0, 0, 0.33)"
+                    strokeColor="rgba(255, 0, 0, 0.3)"
                     strokeWidth={2}
                   />
 
+                  {/* Pokemon marker */}
                   <Marker
                     coordinate={{
                       latitude: pokemon.latitude,
@@ -458,10 +470,18 @@ export default function Map() {
                     anchor={{ x: 0.5, y: 0.5 }}
                     centerOffset={{ x: 0, y: 0 }}
                   >
-                    <View style={styles.markerContainer}>
+                    <View
+                      style={{
+                        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                        borderRadius: 25,
+                        padding: 5,
+                        borderWidth: 2,
+                        borderColor: 'white',
+                      }}
+                    >
                       <Image
                         source={{ uri: pokemon.spriteUrl }}
-                        style={styles.markerImage}
+                        style={{ width: 40, height: 40 }}
                       />
                     </View>
                   </Marker>
@@ -478,7 +498,7 @@ export default function Map() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5f6fa',
   },
   headerGradient: {
     paddingTop: 48,
@@ -518,43 +538,65 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  markerContainer: {
-    backgroundColor: 'rgba(220, 10, 45, 0.9)',
+  topbar: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    height: 60,
+    paddingHorizontal: 16,
+    zIndex: 1,
+  },
+  hamburger: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+  },
+  bar: {
+    width: 20,
+    height: 3,
+    backgroundColor: '#333',
+    marginVertical: 2,
+    borderRadius: 2,
+  },
+  debugBox: {
+    position: 'absolute',
+    top: 120,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 8,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  debugText: {
+    color: 'white',
+    fontSize: 12,
+  },
+  refreshButton: {
+    position: 'absolute',
+    bottom: 30,
+    alignSelf: 'center',
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 25,
-    padding: 5,
-    borderWidth: 3,
-    borderColor: 'white',
-    elevation: 4,
+    zIndex: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  markerImage: {
-    width: 40,
-    height: 40,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  errorIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  errorTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  errorMessage: {
+  refreshButtonText: {
+    color: 'white',
     fontSize: 16,
-    color: '#fff',
-    fontWeight: '500',
-    marginBottom: 32,
-    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
