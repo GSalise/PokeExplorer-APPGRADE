@@ -10,6 +10,7 @@ import Login from './screens/Login';
 import SignUp from './screens/SignUp';
 import LogoutScreen from './screens/logout';
 import Map from './screens/map';
+import ProfilePage from './screens/profile';
 import { useAuthState } from './hooks/useStateAuth';
 import { UserProfileProvider } from './context/userProfileContext';
 export type RootStackParamList = {
@@ -21,6 +22,7 @@ export type RootStackParamList = {
   Camera: undefined;
   Logout: undefined;
   Map: undefined;
+  Profile: undefined;
 };
 
 const Stack = createNativeStackNavigator();
@@ -33,6 +35,7 @@ function DrawerScreens() {
       <Drawer.Screen name="Map" component={Map} />
       <Drawer.Screen name="PokemonAR" component={PokemonAR} />
       <Drawer.Screen name="Camera" component={Camera} />
+      <Drawer.Screen name="Profile" component={ProfilePage} />
       <Drawer.Screen name="Logout" component={LogoutScreen} />
     </Drawer.Navigator>
   );
