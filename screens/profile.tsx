@@ -1,198 +1,69 @@
-import { useEffect, useState } from "react";
-import { View, Text, Image, ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
-import { auth, db } from "../services/firebaseConfig";
-import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
-import { onAuthStateChanged, User, updateProfile, signOut } from "firebase/auth";
-import { launchImageLibrary, Asset } from "react-native-image-picker"; // ADD
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  Alert,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { signOut } from 'firebase/auth';
+import { auth } from '../services/firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
 
-type Profile = {
-  level: number;
-  xp: number;
-  pokemonCount: number;
-  displayName: string;
-  profilePic: string;
-  createdAt: any;
-};
+export default function ProfileScreen() {
+  const navigation = useNavigation();
 
-export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Local edit state
-  const [nameInput, setNameInput] = useState("");
-  const [photoInput, setPhotoInput] = useState("");
-  const [pickedPhoto, setPickedPhoto] = useState<Asset | null>(null); // ADD
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    let unsubProfile: undefined | (() => void);
-
-    const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (!currentUser) {
-        setProfile(null);
-        setLoading(false);
-        if (unsubProfile) unsubProfile();
-        return;
-      }
-
-      const ref = doc(db, "users", currentUser.uid);
-
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        console.log("User doc missing");
-      }
-
-      unsubProfile = onSnapshot(ref, (s) => {
-        if (s.exists()) {
-          const data = s.data() as Profile;
-          setProfile(data);
-          // Pre-fill inputs from profile
-          setNameInput(data.displayName ?? "");
-          setPhotoInput(data.profilePic ?? "");
-        }
-      });
-
-      setLoading(false);
-    });
-
-    return () => {
-      unsubAuth();
-      if (unsubProfile) unsubProfile();
-    };
-  }, []);
-
-  async function handleLogout() {
-    try {
-      await signOut(auth); // Logic aligned with logout.tsx usage of Firebase Auth
-      // AppNavigation will show Login when user is null
-    } catch (e) {
-      Alert.alert("Logout failed", String(e));
-    }
-  }
-
-  async function pickProfilePhoto() {
-    const res = await launchImageLibrary({
-      mediaType: "photo",
-      selectionLimit: 1,
-      quality: 0.9,
-    });
-
-    if (res.didCancel) return;
-    if (res.errorCode) {
-      Alert.alert("Image picker error", res.errorMessage || res.errorCode);
-      return;
-    }
-    const asset = res.assets?.[0];
-    if (!asset?.uri) {
-      Alert.alert("No image selected");
-      return;
-    }
-    setPickedPhoto(asset);
-    setPhotoInput(asset.uri); // use local URI; if you need a remote URL, upload to storage first
-  }
-
-  async function saveProfileUpdates() {
-    if (!user) return;
-    setSaving(true);
-    try {
-      const ref = doc(db, "users", user.uid);
-
-      await updateDoc(ref, {
-        displayName: nameInput.trim(),
-        profilePic: photoInput.trim(),
-      });
-
-      await updateProfile(user, {
-        displayName: nameInput.trim() || undefined,
-        photoURL: photoInput.trim() || undefined,
-      });
-
-      Alert.alert("Profile updated", "Your changes have been saved.");
-    } catch (e) {
-      Alert.alert("Update failed", String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-        <Text style={styles.muted}>Loading...</Text>
-      </View>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.muted}>No profile found.</Text>
-        <TouchableOpacity style={[styles.button, { marginTop: 12 }]} onPress={handleLogout}>
-          <Text style={styles.buttonText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut(auth);
+            console.log('User logged out successfully');
+          } catch (error) {
+            console.error('Logout error:', error);
+            Alert.alert('Error', 'Failed to logout. Please try again.');
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
-      {photoInput ? (
-        <Image source={{ uri: photoInput }} style={styles.avatar} />
-      ) : profile?.profilePic ? (
-        <Image source={{ uri: profile.profilePic }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarFallback]}>
-          <Text style={styles.avatarInitial}>
-            {profile?.displayName?.charAt(0)?.toUpperCase() || "?"}
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['#DC0A2D', '#FF6B6B']}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Profile</Text>
+        </View>
+      </LinearGradient>
+
+      <View style={styles.content}>
+        <View style={styles.profileSection}>
+          <Text style={styles.profileIcon}>👤</Text>
+          <Text style={styles.username}>Pokémon Trainer</Text>
+          <Text style={styles.email}>
+            {auth.currentUser?.email || 'trainer@pokemon.com'}
           </Text>
         </View>
-      )}
 
-      <Text style={styles.title}>{profile?.displayName}</Text>
-
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{profile?.level ?? 0}</Text>
-          <Text style={styles.statLabel}>Level</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{profile?.pokemonCount ?? 0}</Text>
-          <Text style={styles.statLabel}>Pokémon</Text>
-        </View>
-      </View>
-
-      {/* Edit form */}
-      <View style={styles.form}>
-        <Text style={styles.sectionTitle}>Update profile</Text>
-
-        <Text style={styles.inputLabel}>Display name</Text>
-        <TextInput
-          value={nameInput}
-          onChangeText={setNameInput}
-          placeholder="Enter display name"
-          style={styles.input}
-        />
-
-        <Text style={styles.inputLabel}>Profile picture</Text>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity style={[styles.button, { flex: 0 }]} onPress={pickProfilePhoto}>
-            <Text style={styles.buttonText}>Pick from gallery</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Optional: show URI for debugging */}
-        {photoInput ? <Text style={styles.muted} numberOfLines={1}>Selected: {photoInput}</Text> : null}
-
-        <TouchableOpacity style={[styles.button, saving && styles.buttonDisabled]} onPress={saveProfileUpdates} disabled={saving}>
-          <Text style={styles.buttonText}>{saving ? "Saving..." : "Save changes"}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.buttonOutline]} onPress={handleLogout}>
-          <Text style={styles.buttonOutlineText}>Logout</Text>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -202,121 +73,69 @@ export default function ProfilePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: '#f5f5f5',
   },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 40,
+  headerGradient: {
+    paddingTop: 48,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  muted: {
-    marginTop: 8,
-    color: "#6b7280",
-  },
-  avatar: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    marginBottom: 16,
-  },
-  avatarFallback: {
-    backgroundColor: "#d1d5db",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarInitial: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#374151",
+  header: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 24,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
-  statsRow: {
-    flexDirection: "row",
-    gap: 12,
+  content: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  profileSection: {
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  profileIcon: {
+    fontSize: 80,
     marginBottom: 16,
   },
-  statCard: {
-    backgroundColor: "#ffffff",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    minWidth: 120,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    marginHorizontal: 6,
+  username: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
   },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  statLabel: {
-    color: "#6b7280",
-    fontSize: 12,
-    marginTop: 4,
-  },
-  form: {
-    width: "100%",
-    maxWidth: 480,
-    marginTop: 12,
-    backgroundColor: "#ffffff",
-    padding: 16,
-    borderRadius: 12,
-  },
-  sectionTitle: {
+  email: {
     fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
+    color: '#666',
+    fontWeight: '500',
   },
-  inputLabel: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginBottom: 6,
-    marginTop: 8,
+  logoutButton: {
+    backgroundColor: '#DC0A2D',
+    paddingVertical: 16,
+    borderRadius: 28,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    marginBottom: 20,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#fafafa",
-  },
-  button: {
-    marginTop: 16,
-    backgroundColor: "#2563eb",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-  },
-  buttonOutline: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: "#ef4444",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  buttonOutlineText: {
-    color: "#ef4444",
-    fontWeight: "600",
+  logoutText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
