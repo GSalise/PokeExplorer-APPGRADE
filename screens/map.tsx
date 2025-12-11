@@ -16,7 +16,7 @@ import {
   Linking,
   Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -76,6 +76,7 @@ const requestLocationPermission = async () => {
 
 export default function Map() {
   const mapRef = useRef<MapView>(null);
+  const route = useRoute();
   const [randomOffset, setRandomOffset] = useState(
     Math.floor(Math.random() * 148),
   );
@@ -199,6 +200,7 @@ export default function Map() {
               onPress: () =>
                 navigation.navigate('PokemonAR', {
                   pokemonid: pokemon.pokedexId, // Use the actual Pokedex ID
+                  spawnId: pokemon.id,
                 }),
             },
             { text: 'OK' },
@@ -404,6 +406,24 @@ export default function Map() {
     }
   };
 
+  // Remove a captured spawn when coming back from AR
+  useEffect(() => {
+    const params = route.params as
+      | { capturedSpawnId?: string; capturedPokedexId?: string }
+      | undefined;
+
+    if (params?.capturedSpawnId) {
+      setPokemons(prev =>
+        prev.filter(poke => poke.id !== params.capturedSpawnId),
+      );
+      insideGeofences.current.delete(params.capturedSpawnId);
+      navigation.setParams?.({
+        capturedSpawnId: undefined,
+        capturedPokedexId: undefined,
+      });
+    }
+  }, [navigation, route.params]);
+
   return (
     <View style={styles.container}>
       {!hasLocationPermission ? (
@@ -471,9 +491,6 @@ export default function Map() {
                   description={`Tap to encounter!`}
                   anchor={{ x: 0.5, y: 0.5 }}
                   centerOffset={{ x: 0, y: 0 }}
-                  onPress={() => navigation.navigate('PokemonAR', {
-                    pokemonid: pokemon.pokedexId,
-                  })}
                 >
                   <View
                     style={{

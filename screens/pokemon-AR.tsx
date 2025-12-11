@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
-  Pressable,
   Text,
   StyleSheet,
   PermissionsAndroid,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ViroARSceneNavigator } from '@reactvision/react-viro';
 import { captureRef } from 'react-native-view-shot';
 import uuid from 'react-native-uuid';
@@ -14,15 +14,17 @@ import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import PokemonARScene from './pokemon-AR-scene';
 
 type props = {
-  route: { params?: { pokemonid?: string } };
+  route: { params?: { pokemonid?: string; spawnId?: string } };
 };
 export default function PokemonAR({ route }: props) {
   const viroViewRef = useRef<ViroARSceneNavigator | null>(null);
-  const [flashMessage, setFlashMessage] = useState(false);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
   const [arReady, setArReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const navigation = useNavigation<any>();
 
   const pokemonid = route.params?.pokemonid ?? '25';
+  const spawnId = route.params?.spawnId;
 
   const handleTrackingReady = useCallback(() => {
     setArReady(true);
@@ -45,11 +47,11 @@ export default function PokemonAR({ route }: props) {
 
   const capturePokemon = useCallback(async () => {
     if (capturing) return;
-    
+
     if (!arReady) {
       console.warn('AR tracking not ready yet, attempting capture anyway...');
     }
-    
+
     setCapturing(true);
     try {
       if (!viroViewRef.current) {
@@ -73,7 +75,7 @@ export default function PokemonAR({ route }: props) {
       }
 
       console.log('Captured:', localUri);
-
+      
       const ok = await ensurePhotoPermission();
       if (!ok) {
         console.warn('Gallery permission denied');
@@ -81,14 +83,22 @@ export default function PokemonAR({ route }: props) {
       }
 
       await CameraRoll.save(localUri, { type: 'photo', album: 'PokeExplorer' });
-      setFlashMessage(true);
-      setTimeout(() => setFlashMessage(false), 1500);
+      setFlashMessage('Captured! Saved to gallery.');
+      // Give the toast a short moment to show before navigating away
+      await new Promise<void>(resolve => setTimeout(resolve, 900));
+      setFlashMessage(null);
+
+      // Return to map and flag the captured spawn so it disappears there
+      navigation.navigate('Map', {
+        capturedSpawnId: spawnId,
+        capturedPokedexId: pokemonid,
+      });
     } catch (err) {
       console.error('Error:', err);
     } finally {
       setCapturing(false);
     }
-  }, [arReady, viroViewRef]);
+  }, [arReady, capturing, navigation, pokemonid, spawnId, viroViewRef]);
 
   const SceneWithProps = useMemo(
     () =>
@@ -113,24 +123,25 @@ export default function PokemonAR({ route }: props) {
         style={StyleSheet.absoluteFill}
       />
 
-      
-
-      {/* <Pressable
-        onPress={capturePokemon}
-        style={[
-          styles.captureButton,
-          (!arReady || capturing) && { opacity: 0.5 },
-        ]}
-        disabled={!arReady || capturing}
-      >
-        <Text style={styles.captureText}>
-          {capturing ? 'CAPTURING…' : 'CAPTURE'}
+      <View style={styles.hud}>
+        <View
+          style={[
+            styles.statusPill,
+            { backgroundColor: arReady ? '#16a34a' : '#f97316' },
+          ]}
+        >
+          <Text style={styles.statusText}>
+            {arReady ? 'Target Locked' : 'Scanning environment...'}
+          </Text>
+        </View>
+        <Text style={styles.tipText}>
+          Tap the Pokémon to take a snap.
         </Text>
-      </Pressable> */}
+      </View>
 
       {flashMessage && (
         <View style={styles.flashBanner}>
-          <Text style={{ color: 'white' }}>Screenshot saved!</Text>
+          <Text style={{ color: 'white' }}>{flashMessage}</Text>
         </View>
       )}
     </View>
@@ -138,33 +149,30 @@ export default function PokemonAR({ route }: props) {
 }
 
 const styles = StyleSheet.create({
-  crosshair: {
+  hud: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderWidth: 2,
-    borderColor: 'red',
-    borderRadius: 20,
-    top: '50%',
-    left: '50%',
-    marginLeft: -20,
-    marginTop: -20,
-    zIndex: 10,
-  },
-  captureButton: {
-    position: 'absolute',
-    bottom: 40,
+    top: 24,
     alignSelf: 'center',
-    backgroundColor: '#ff4444',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    zIndex: 20,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 12,
   },
-  captureText: {
+  statusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  statusText: {
     color: 'white',
-    fontWeight: 'bold',
-    fontSize: 18,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  tipText: {
+    marginTop: 6,
+    color: 'white',
+    fontSize: 12,
   },
   flashBanner: {
     position: 'absolute',
