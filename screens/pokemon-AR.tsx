@@ -130,23 +130,24 @@ export default function PokemonAR({ route }: props) {
         <View
           style={[
             styles.statusPill,
-            { backgroundColor: arReady ? '#16a34a' : '#f97316' },
+            {
+              backgroundColor: flashMessage
+                ? '#16a34a'
+                : arReady
+                  ? '#16a34a'
+                  : '#f97316',
+            },
           ]}
         >
           <Text style={styles.statusText}>
-            {arReady ? 'Target Locked' : 'Scanning environment...'}
+            {flashMessage ||
+              (arReady ? 'Target Locked' : 'Scanning environment...')}
           </Text>
         </View>
         <Text style={styles.tipText}>
           Tap the Pokémon to take a snap.
         </Text>
       </View>
-
-      {flashMessage && (
-        <View style={styles.flashBanner}>
-          <Text style={{ color: 'white' }}>{flashMessage}</Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -176,14 +177,5 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: 'white',
     fontSize: 12,
-  },
-  flashBanner: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    height: 40,
-    backgroundColor: 'green',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
