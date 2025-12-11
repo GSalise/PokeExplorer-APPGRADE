@@ -4,7 +4,6 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { signOut } from 'firebase/auth';
-import Camera from './screens/camera';
 import PokemonAR from './screens/pokemon-AR';
 import Home from './screens/home';
 import Login from './screens/Login';
@@ -65,9 +64,9 @@ function TabScreens() {
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
         tabBarStyle: {
-          height: 70, // Increase height
-          paddingBottom: 10, // Add padding at bottom
-          paddingTop: 10, // Add padding at top
+          height: 70,
+          paddingBottom: 10,
+          paddingTop: 10,
         },
       })}
     >
@@ -92,29 +91,6 @@ function TabScreens() {
 // }
 
 // Origintal AppNavigation with auth check
-// function AppNavigation() {
-//   const { user, loading } = useAuthState();
-
-//   if (loading) {
-//     return null; // Or splash/loading screen
-//   }
-
-//   return (
-//     <Stack.Navigator screenOptions={{ headerShown: false }}>
-//       {user ? (
-//         // Authenticated → show Drawer
-//         <Stack.Screen name="Screens" component={TabScreens} />
-//       ) : (
-//         // Not authenticated → show Login + Signup
-//         <>
-//           <Stack.Screen name="Login" component={Login} />
-//           <Stack.Screen name="SignUp" component={SignUp} />
-//         </>
-//       )}
-//     </Stack.Navigator>
-//   );
-// }
-
 function AppNavigation() {
   const { user, loading } = useAuthState();
 
@@ -124,11 +100,34 @@ function AppNavigation() {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Temporarily skip authentication */}
-      <Stack.Screen name="Screens" component={TabScreens} />
+      {user ? (
+        // Authenticated → show Drawer
+        <Stack.Screen name="Screens" component={TabScreens} />
+      ) : (
+        // Not authenticated → show Login + Signup
+        <>
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="SignUp" component={SignUp} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }
+
+// function AppNavigation() {
+//   const { user, loading } = useAuthState();
+
+//   if (loading) {
+//     return null; // Or splash/loading screen
+//   }
+
+//   return (
+//     <Stack.Navigator screenOptions={{ headerShown: false }}>
+//       {/* Temporarily skip authentication */}
+//       <Stack.Screen name="Screens" component={TabScreens} />
+//     </Stack.Navigator>
+//   );
+// }
 
 export default function App() {
   const queryClient = new QueryClient();
