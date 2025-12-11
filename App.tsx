@@ -91,29 +91,6 @@ function TabScreens() {
 // }
 
 // Origintal AppNavigation with auth check
-// function AppNavigation() {
-//   const { user, loading } = useAuthState();
-
-//   if (loading) {
-//     return null; // Or splash/loading screen
-//   }
-
-//   return (
-//     <Stack.Navigator screenOptions={{ headerShown: false }}>
-//       {user ? (
-//         // Authenticated → show Drawer
-//         <Stack.Screen name="Screens" component={TabScreens} />
-//       ) : (
-//         // Not authenticated → show Login + Signup
-//         <>
-//           <Stack.Screen name="Login" component={Login} />
-//           <Stack.Screen name="SignUp" component={SignUp} />
-//         </>
-//       )}
-//     </Stack.Navigator>
-//   );
-// }
-
 function AppNavigation() {
   const { user, loading } = useAuthState();
 
@@ -123,11 +100,34 @@ function AppNavigation() {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Temporarily skip authentication */}
-      <Stack.Screen name="Screens" component={TabScreens} />
+      {user ? (
+        // Authenticated → show Drawer
+        <Stack.Screen name="Screens" component={TabScreens} />
+      ) : (
+        // Not authenticated → show Login + Signup
+        <>
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="SignUp" component={SignUp} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }
+
+// function AppNavigation() {
+//   const { user, loading } = useAuthState();
+
+//   if (loading) {
+//     return null; // Or splash/loading screen
+//   }
+
+//   return (
+//     <Stack.Navigator screenOptions={{ headerShown: false }}>
+//       {/* Temporarily skip authentication */}
+//       <Stack.Screen name="Screens" component={TabScreens} />
+//     </Stack.Navigator>
+//   );
+// }
 
 export default function App() {
   const queryClient = new QueryClient();

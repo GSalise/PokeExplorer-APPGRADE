@@ -17,7 +17,7 @@ import {
   Image,
   StatusBar,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,7 +38,7 @@ const INITIAL_REGION = {
 
 const LOCATION_CACHE_KEY = '@user_last_location';
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
-const GEOFENCE_RADIUS = 10; // 10 meters
+const GEOFENCE_RADIUS = 50; // 10 meters
 
 // Helper to extract the numeric id for navigation
 
@@ -83,11 +83,14 @@ export default function Map() {
   );
   const { data, refetch } = usePokeDexApi(3, randomOffset, false);
   const navigation = useNavigation<DrawerNavigationProp<any>>();
+  const route = useRoute();
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [userRegion, setUserRegion] = useState<Region | null>(null);
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const hasSpawned = useRef(false);
   const insideGeofences = useRef(new Set<string>()); // Track which geofences user is inside
+  const lastAlertTime = useRef<Record<string, number>>({}); // Track last alert time per pokemon
+  const processedCaptures = useRef(new Set<string>()); // Track already processed captures
   const [lastStaticLocation, setLastStaticLocation] = useState<Region | null>(
     null,
   );
@@ -174,6 +177,36 @@ export default function Map() {
     hasSpawned.current = true;
   };
 
+  // Handle marker tap - navigate to AR if within geofence
+  const handleMarkerPress = (pokemon: Pokemon) => {
+    if (!userRegion) {
+      Alert.alert('Location Error', 'Unable to determine your location.');
+      return;
+    }
+
+    const distance = calculateDistance(
+      userRegion.latitude,
+      userRegion.longitude,
+      pokemon.latitude,
+      pokemon.longitude,
+    );
+
+    if (distance <= GEOFENCE_RADIUS) {
+      // User is within geofence, navigate to AR capture
+      navigation.navigate('PokemonAR', {
+        pokemonid: pokemon.pokedexId,
+        spawnId: pokemon.id,
+      });
+    } else {
+      // User is too far away
+      Alert.alert(
+        'Too Far Away',
+        `You need to get closer! This Pokémon is ${Math.round(distance)}m away. Move within ${GEOFENCE_RADIUS}m to capture it.`,
+        [{ text: 'OK' }],
+      );
+    }
+  };
+
   // Check if user is inside the pokemon's geofence
   const checkPokemonProximity = (userLat: number, userLon: number) => {
     pokemons.forEach(pokemon => {
@@ -190,22 +223,34 @@ export default function Map() {
       // User just entered geofence
       if (isInside && !wasInside) {
         insideGeofences.current.add(pokemon.id);
-        Alert.alert(
-          'Wild Pokémon Nearby!',
-          `A wild ${pokemon.name || 'Pokémon'} appeared! Distance: ${Math.round(
-            distance,
-          )}m`,
-          [
-            {
-              text: 'Catch!',
-              onPress: () =>
-                navigation.navigate('PokemonAR', {
-                  pokemonid: pokemon.pokedexId, // Use the actual Pokedex ID
-                }),
-            },
-            { text: 'OK' },
-          ],
-        );
+        
+        // Check if we've shown an alert for this pokemon recently (within last 5 seconds)
+        const lastAlert = lastAlertTime.current[pokemon.id] || 0;
+        const now = Date.now();
+        const ALERT_COOLDOWN = 5000; // 5 seconds cooldown
+        
+        if (now - lastAlert > ALERT_COOLDOWN) {
+          lastAlertTime.current[pokemon.id] = now;
+          
+          Alert.alert(
+            'Wild Pokémon Nearby!',
+            `A wild ${pokemon.name || 'Pokémon'} appeared! Distance: ${Math.round(
+              distance,
+            )}m`,
+            [
+              {
+                text: 'Catch!',
+                onPress: () =>
+                  navigation.navigate('PokemonAR', {
+                    pokemonid: pokemon.pokedexId, // Use the actual Pokedex ID
+                    spawnId: pokemon.id,
+                  }),
+              },
+              { text: 'OK' },
+            ],
+          );
+        }
+        
         console.log(
           `Entered geofence for ${pokemon.name} at ${Math.round(distance)}m`,
         );
@@ -213,6 +258,8 @@ export default function Map() {
       // User left geofence
       else if (!isInside && wasInside) {
         insideGeofences.current.delete(pokemon.id);
+        // Clear the alert time when leaving so it can trigger again if re-entered
+        delete lastAlertTime.current[pokemon.id];
         console.log(`Left geofence for ${pokemon.name}`);
       }
     });
@@ -349,6 +396,7 @@ export default function Map() {
     return () => {
       Geolocation.clearWatch(watchId);
       insideGeofences.current.clear();
+      lastAlertTime.current = {};
     };
   }, [hasLocationPermission, pokemons, lastStaticLocation]);
 
@@ -376,6 +424,33 @@ export default function Map() {
     }
   }, [hasLocationPermission, userRegion, data]);
 
+  // Remove captured Pokémon from map when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const params = route.params as { capturedSpawnId?: string } | undefined;
+      const capturedSpawnId = params?.capturedSpawnId;
+
+      if (capturedSpawnId && !processedCaptures.current.has(capturedSpawnId)) {
+        // Mark as processed
+        processedCaptures.current.add(capturedSpawnId);
+
+        // Remove the captured Pokémon from the map
+        setPokemons(prevPokemons => 
+          prevPokemons.filter(pokemon => pokemon.id !== capturedSpawnId)
+        );
+
+        // Clean up geofence tracking for this Pokémon
+        insideGeofences.current.delete(capturedSpawnId);
+        delete lastAlertTime.current[capturedSpawnId];
+
+        console.log(`Removed captured Pokémon: ${capturedSpawnId}`);
+
+        // Clear the route params to prevent re-processing
+        navigation.setParams({ capturedSpawnId: undefined });
+      }
+    }, [route.params, navigation])
+  );
+
   // Manual refresh pokemon spawn
   const handleRefreshSpawn = async (manual: boolean = false) => {
     if (userRegion) {
@@ -385,6 +460,8 @@ export default function Map() {
 
       setRandomOffset(newOffset);
       insideGeofences.current.clear(); // Clear geofence tracking
+      lastAlertTime.current = {}; // Clear alert timestamps
+      processedCaptures.current.clear(); // Clear processed captures
       hasSpawned.current = false; // Reset spawn flag so it can spawn again
 
       // Refetch with new offset
@@ -441,51 +518,51 @@ export default function Map() {
             >
               {/* Display Pokémon markers with geofence circles */}
               {pokemons.map(pokemon => (
-                <React.Fragment key={pokemon.id}>
-                  {/* Geofence circle */}
-                  <Circle
-                    center={{
-                      latitude: pokemon.latitude,
-                      longitude: pokemon.longitude,
+                <Circle
+                  key={pokemon.id}
+                  center={{
+                    latitude: pokemon.latitude,
+                    longitude: pokemon.longitude,
+                  }}
+                  radius={GEOFENCE_RADIUS}
+                  fillColor="rgba(255, 0, 0, 0.33)"
+                  strokeColor="rgba(255, 0, 0, 0.3)"
+                  strokeWidth={2}
+                />
+              ))}
+              {pokemons.map(pokemon => (
+                <Marker
+                  key={pokemon.id}
+                  coordinate={{
+                    latitude: pokemon.latitude,
+                    longitude: pokemon.longitude,
+                  }}
+                  title={
+                    pokemon.name
+                      ? pokemon.name.charAt(0).toUpperCase() +
+                        pokemon.name.slice(1)
+                      : 'Wild Pokémon'
+                  }
+                  description={`Go to this location to encounter!`}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  centerOffset={{ x: 0, y: 0 }}
+                  onPress={() => handleMarkerPress(pokemon)}
+                >
+                  <View
+                    style={{
+                      backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                      borderRadius: 25,
+                      padding: 5,
+                      borderWidth: 2,
+                      borderColor: 'white',
                     }}
-                    radius={GEOFENCE_RADIUS}
-                    fillColor="rgba(255, 0, 0, 0.33)"
-                    strokeColor="rgba(255, 0, 0, 0.3)"
-                    strokeWidth={2}
-                  />
-
-                  {/* Pokemon marker */}
-                  <Marker
-                    coordinate={{
-                      latitude: pokemon.latitude,
-                      longitude: pokemon.longitude,
-                    }}
-                    title={
-                      pokemon.name
-                        ? pokemon.name.charAt(0).toUpperCase() +
-                          pokemon.name.slice(1)
-                        : 'Wild Pokémon'
-                    }
-                    description={`Go to this location to encounter!`}
-                    anchor={{ x: 0.5, y: 0.5 }}
-                    centerOffset={{ x: 0, y: 0 }}
                   >
-                    <View
-                      style={{
-                        backgroundColor: 'rgba(255, 0, 0, 0.8)',
-                        borderRadius: 25,
-                        padding: 5,
-                        borderWidth: 2,
-                        borderColor: 'white',
-                      }}
-                    >
-                      <Image
-                        source={{ uri: pokemon.spriteUrl }}
-                        style={{ width: 40, height: 40 }}
-                      />
-                    </View>
-                  </Marker>
-                </React.Fragment>
+                    <Image
+                      source={{ uri: pokemon.spriteUrl }}
+                      style={{ width: 40, height: 40 }}
+                    />
+                  </View>
+                </Marker>
               ))}
             </MapView>
           </View>
