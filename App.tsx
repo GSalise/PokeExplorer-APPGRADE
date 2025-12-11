@@ -123,36 +123,11 @@ function AppNavigation() {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
-        // Authenticated → show Drawer
-        <Stack.Screen name="Screens" component={TabScreens} />
-      ) : (
-        // Not authenticated → show Login + Signup
-        <>
-          <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="SignUp" component={SignUp} />
-        </>
-      )}
+      {/* Temporarily skip authentication */}
+      <Stack.Screen name="Screens" component={TabScreens} />
     </Stack.Navigator>
   );
 }
-
-// ...existing code...
-
-// function AppNavigation() {
-//   const { user, loading } = useAuthState();
-
-//   if (loading) {
-//     return null; // Or splash/loading screen
-//   }
-
-//   return (
-//     <Stack.Navigator screenOptions={{ headerShown: false }}>
-//       {/* Temporarily skip authentication */}
-//       <Stack.Screen name="Screens" component={TabScreens} />
-//     </Stack.Navigator>
-//   );
-// }
 
 export default function App() {
   const queryClient = new QueryClient();
