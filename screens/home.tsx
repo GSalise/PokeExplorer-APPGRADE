@@ -10,23 +10,21 @@ import {
   StatusBar,
   Modal,
   ScrollView,
+  TextInput,
+  Animated,
+  Alert,
 } from 'react-native';
 import { usePokeDexApi, PokemonData } from '../hooks/usePokeApi';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { getPokemonId, getPokemonImageUrl } from '../utils/pokeApiUtils';
+import axios from 'axios';
 
-function getPokemonImageUrl(url: string) {
-  const idMatch = url.match(/\/pokemon\/(\d+)\//);
-  const id = idMatch ? idMatch[1] : '';
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-}
-
-// Helper to extract the numeric id for navigation
-function getPokemonId(url: string) {
-  const m = url.match(/\/pokemon\/(\d+)\//);
-  return m ? m[1] : '';
-}
+const searchIcon = <Ionicons name="search" size={24} color="#fff" />;
+const closeIcon = <Ionicons name="close" size={24} color="#fff" />;
+const micIcon = <Ionicons name="mic" size={20} color="#333" />;
 
 // Type color mapping
 const TYPE_COLORS: { [key: string]: string } = {
@@ -57,14 +55,129 @@ function Home() {
     null,
   );
   const [modalVisible, setModalVisible] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<PokemonData[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchMode, setSearchMode] = useState(false);
+  const searchWidth = useState(new Animated.Value(0))[0];
 
   const { data, isLoading, error, isRefetching, refetch } = usePokeDexApi(
     20,
     offset,
-    true, // Changed to true to fetch detailed data
+    true,
   );
 
   console.log('Pokedex error:', error);
+
+  const toggleSearch = () => {
+    if (searchExpanded) {
+      // Collapse
+      Animated.timing(searchWidth, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start(() => {
+        setSearchExpanded(false);
+        setSearchQuery('');
+        setSearchMode(false);
+        setSearchResults([]);
+      });
+    } else {
+      // Expand
+      setSearchExpanded(true);
+      Animated.timing(searchWidth, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    }
+  };
+
+  const handleVoiceSearch = () => {
+    // TODO: Implement voice search functionality
+    console.log('Voice search triggered');
+  };
+
+  const handleSearchNow = async () => {
+    if (!searchQuery.trim()) {
+      Alert.alert('Empty Search', 'Please enter a Pokémon name or ID');
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchMode(true);
+
+    try {
+      // Search by name or ID
+      const query = searchQuery.toLowerCase().trim();
+      const response = await axios.get(
+        `https://pokeapi.co/api/v2/pokemon/${query}`,
+      );
+
+      const pokeData = response.data;
+
+      // Extract types
+      const types = pokeData.types.map(
+        (t: { type: { name: string } }) => t.type.name,
+      );
+
+      // Extract abilities
+      const abilities = pokeData.abilities.map(
+        (a: { ability: { name: string } }) => a.ability.name,
+      );
+
+      // Extract stats
+      const stats = {
+        hp: pokeData.stats[0].base_stat,
+        attack: pokeData.stats[1].base_stat,
+        defense: pokeData.stats[2].base_stat,
+        specialAttack: pokeData.stats[3].base_stat,
+        specialDefense: pokeData.stats[4].base_stat,
+        speed: pokeData.stats[5].base_stat,
+      };
+
+      // Extract sprites
+      const sprites = {
+        front_default: pokeData.sprites.front_default,
+        front_shiny: pokeData.sprites.front_shiny,
+        official_artwork:
+          pokeData.sprites.other?.['official-artwork']?.front_default,
+      };
+
+      const pokemon: PokemonData = {
+        name: pokeData.name,
+        url: `https://pokeapi.co/api/v2/pokemon/${pokeData.id}/`,
+        types,
+        abilities,
+        stats,
+        sprites,
+      };
+
+      setSearchResults([pokemon]);
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        Alert.alert(
+          'Not Found',
+          `No Pokémon found with name or ID "${searchQuery}" \n\nPlease ensure the name/ID is correct and try again.`,
+        );
+      } else {
+        Alert.alert('Error', 'Failed to search for Pokémon. Please try again.');
+      }
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchMode(false);
+    setSearchResults([]);
+    setSearchQuery('');
+  };
+
+  // Use search results if in search mode, otherwise use normal data
+  const displayData = searchMode ? searchResults : data?.results;
 
   if (isLoading) {
     return (
@@ -98,6 +211,9 @@ function Home() {
   }
 
   const handleRefresh = () => {
+    if (searchMode) {
+      handleClearSearch();
+    }
     const maxOffset = 1328 - 28;
     const newOffset = Math.floor(Math.random() * maxOffset);
     setOffset(newOffset);
@@ -110,10 +226,25 @@ function Home() {
   };
 
   const renderFooter = () => (
-    <Text style={styles.footerText}>
-      Pull down from the top to refresh Pokédex
-    </Text>
+    <View>
+      {searchMode && (
+        <TouchableOpacity
+          style={styles.clearSearchButton}
+          onPress={handleClearSearch}
+        >
+          <Text style={styles.clearSearchText}>Clear Search</Text>
+        </TouchableOpacity>
+      )}
+      <Text style={styles.footerText}>
+        Pull down from the top to refresh Pokédex
+      </Text>
+    </View>
   );
+
+  // const interpolatedWidth = searchWidth.interpolate({
+  //   inputRange: [0, 1],
+  //   outputRange: ['0%', '100%'],
+  // });
 
   return (
     <View style={styles.container}>
@@ -123,12 +254,64 @@ function Home() {
         style={styles.headerGradient}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Pokédex</Text>
+          {!searchExpanded && <Text style={styles.title}>Pokédex</Text>}
+
+          <View
+            style={[
+              styles.searchContainer,
+              searchExpanded && { flex: 1, marginLeft: 10 },
+            ]}
+          >
+            {searchExpanded && (
+              <Animated.View style={[styles.searchBar, { flex: 1 }]}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search Pokémon..."
+                  placeholderTextColor="#ccc"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                  returnKeyType="search"
+                  onSubmitEditing={handleSearchNow}
+                />
+                {/* kapoy naman */}
+                {/* <TouchableOpacity
+                  style={styles.voiceButton}
+                  onPress={handleVoiceSearch}
+                >
+                  {micIcon}
+                </TouchableOpacity> */}
+                <TouchableOpacity
+                  style={styles.searchNowButton}
+                  onPress={handleSearchNow}
+                  disabled={isSearching}
+                >
+                  {isSearching ? (
+                    <ActivityIndicator size="small" color="#DC0A2D" />
+                  ) : (
+                    <Ionicons name="arrow-forward" size={20} color="#DC0A2D" />
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+
+            <TouchableOpacity
+              style={styles.searchIconButton}
+              onPress={toggleSearch}
+            >
+              {searchExpanded ? closeIcon : searchIcon}
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
       <View style={styles.innerContainer}>
+        {searchMode && searchResults.length === 0 && !isSearching && (
+          <View style={styles.noResultsContainer}>
+            <Text style={styles.noResultsText}>No results found</Text>
+          </View>
+        )}
         <FlatList
-          data={data?.results}
+          data={displayData}
           keyExtractor={item => item.name}
           renderItem={({ item }) => {
             const id = getPokemonId(item.url);
@@ -315,7 +498,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   header: {
-    justifyContent: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
@@ -325,10 +509,79 @@ const styles = StyleSheet.create({
     color: '#fff',
     letterSpacing: 0.5,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    justifyContent: 'flex-end',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    height: 44,
+    overflow: 'hidden',
+  },
+  searchInput: {
+    flex: 1,
+    color: '#333',
+    fontSize: 16,
+    paddingVertical: 8,
+  },
+  voiceButton: {
+    padding: 4,
+    marginRight: 4,
+  },
+  searchNowButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(220, 10, 45, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voiceIcon: {
+    fontSize: 20,
+  },
+  searchIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchIcon: {
+    fontSize: 20,
+  },
   innerContainer: {
     flex: 1,
     width: '90%',
     alignSelf: 'center',
+  },
+  noResultsContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
+  },
+  clearSearchButton: {
+    backgroundColor: '#DC0A2D',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginVertical: 16,
+  },
+  clearSearchText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   card: {
     flex: 1,
