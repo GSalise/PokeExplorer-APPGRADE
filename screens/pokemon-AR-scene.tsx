@@ -41,7 +41,7 @@ const PokemonARScene = ({ pokemonid = '25', onTrackingReady, capture }: ScenePro
         onError={(e) => {
           console.warn('Animated image failed:', e?.nativeEvent ?? e);
         }}
-        onClick={() => capture?.()}
+        onClick={capture}
       />
    </ViroARScene>
   );

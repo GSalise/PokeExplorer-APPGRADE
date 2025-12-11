@@ -5,6 +5,7 @@ export function getPokemonImageUrl(url: string) {
 }
 
 export function getPokemonId(url: string) {
+  console.log('url', url);
   const m = url.match(/\/pokemon\/(\d+)\//);
   return m ? m[1] : '';
 }
