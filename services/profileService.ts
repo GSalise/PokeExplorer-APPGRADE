@@ -1,5 +1,5 @@
 import { auth, db } from "./firebaseConfig";
-import { doc, updateDoc, increment, getDoc } from "firebase/firestore";
+import { doc, updateDoc, increment, getDoc, setDoc } from "firebase/firestore";
 
 // XP formula: level * 100 = next level requirement
 const getNextLevelXp = (level: number) => level * 100;
@@ -9,11 +9,20 @@ export async function rewardPokemonCapture() {
   if (!user) return;
 
   const ref = doc(db, "users", user.uid);
-
   const snap = await getDoc(ref);
-  if (!snap.exists()) return;
 
-  const { level, xp } = snap.data();
+  // If no profile exists, create it
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      level: 1,
+      xp: 0,
+      pokemonCount: 0,
+      createdAt: new Date(),
+      displayName: user.displayName || "",
+    });
+  }
+
+  const { level = 1, xp = 0 } = (snap.data() || {}) as any;
 
   const xpGain = 50;
   const newXp = xp + xpGain;
@@ -29,3 +38,4 @@ export async function rewardPokemonCapture() {
 
   await updateDoc(ref, updateData);
 }
+
