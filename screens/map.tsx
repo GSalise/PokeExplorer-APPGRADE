@@ -418,7 +418,7 @@ export default function Map() {
             style={styles.headerGradient}
           >
             <View style={styles.header}>
-              <Text style={styles.title}>Pokédex</Text>
+              <Text style={styles.title}>PokéMap</Text>
             </View>
           </LinearGradient>
           {/* Debug Button - Refresh spawn button */}
