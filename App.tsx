@@ -38,29 +38,6 @@ function DrawerScreens() {
   );
 }
 
-// function AppNavigation() {
-//   const { user, loading } = useAuthState();
-
-//   if (loading) {
-//     return null; // Or splash/loading screen
-//   }
-
-//   return (
-//     <Stack.Navigator screenOptions={{ headerShown: false }}>
-//       {user ? (
-//         // Authenticated → show Drawer
-//         <Stack.Screen name="Screens" component={DrawerScreens} />
-//       ) : (
-//         // Not authenticated → show Login + Signup
-//         <>
-//           <Stack.Screen name="Login" component={Login} />
-//           <Stack.Screen name="SignUp" component={SignUp} />
-//         </>
-//       )}
-//     </Stack.Navigator>
-//   );
-// }
-
 function AppNavigation() {
   const { user, loading } = useAuthState();
 
@@ -70,18 +47,40 @@ function AppNavigation() {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Temporarily skip authentication */}
-      <Stack.Screen name="Screens" component={DrawerScreens} />
+      {user ? (
+        // Authenticated → show Drawer
+        <Stack.Screen name="Screens" component={DrawerScreens} />
+      ) : (
+        // Not authenticated → show Login + Signup
+        <>
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="SignUp" component={SignUp} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }
+
+// function AppNavigation() {
+//   const { user, loading } = useAuthState();
+
+//   if (loading) {
+//     return null; // Or splash/loading screen
+//   }
+
+//   return (
+//     <Stack.Navigator screenOptions={{ headerShown: false }}>
+//       {/* Temporarily skip authentication */}
+//       <Stack.Screen name="Screens" component={DrawerScreens} />
+//     </Stack.Navigator>
+//   );
+// }
 
 // ...existing code...
 
 export default function App() {
   const queryClient = new QueryClient();
   return (
-
     <QueryClientProvider client={queryClient}>
       <UserProfileProvider>
       <NavigationContainer>

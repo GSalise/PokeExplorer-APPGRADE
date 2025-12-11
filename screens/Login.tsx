@@ -19,7 +19,7 @@ export default function LoginScreen() {
     const user = await signIn(email, password);
     if (user) {
       console.log("Logged in!");
-      navigation.navigate("Home"); // Navigate to Home or another screen if needed
+      // navigation.navigate("Home"); // Navigate to Home or another screen if needed
     }
   };
 
