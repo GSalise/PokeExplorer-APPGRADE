@@ -349,7 +349,7 @@ export default function Map() {
     };
   }, [hasLocationPermission, pokemons, lastStaticLocation]);
 
-  // Timer to refresh spawn every 5 minutes if user hasn't moved
+  // Timer to refresh spawn every 5 minutes if user hasn't moved beyond 10 meters
   useEffect(() => {
     const interval = setInterval(() => {
       // 5 minutes = 300000 ms
